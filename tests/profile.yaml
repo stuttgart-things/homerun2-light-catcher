@@ -1,0 +1,50 @@
+---
+effects:
+  error-git:
+    systems:
+      - gitlab
+      - github
+    severity:
+      - ERROR
+    fx: Blurz
+    duration: 3
+    color: sunset
+    segments:
+      - 0
+    endpoint: http://wled-mock:8080
+
+  info:
+    systems:
+      - "*"
+    severity:
+      - INFO
+    fx: DJ Light
+    duration: 3
+    color: ocean
+    segments:
+      - 0
+    endpoint: http://wled-mock:8080
+
+  success:
+    systems:
+      - "*"
+    severity:
+      - SUCCESS
+    fx: Aurora
+    duration: 3
+    color: forest
+    segments:
+      - 0
+    endpoint: http://wled-mock:8080
+
+  warning:
+    systems:
+      - "*"
+    severity:
+      - WARNING
+    fx: Twinkle
+    duration: 3
+    color: beach
+    segments:
+      - 0
+    endpoint: http://wled-mock:8080

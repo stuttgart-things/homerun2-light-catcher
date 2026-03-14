@@ -1,0 +1,50 @@
+[
+  {
+    "title": "Pipeline failed on main",
+    "message": "Build #42 failed in stage test",
+    "severity": "ERROR",
+    "system": "github",
+    "author": "ci-bot",
+    "timestamp": "0",
+    "tags": ["ci", "pipeline"],
+    "assignee": "",
+    "artifacts": "",
+    "url": "https://github.com/example/repo/actions/runs/42"
+  },
+  {
+    "title": "Deployment successful",
+    "message": "App deployed to production v1.2.3",
+    "severity": "SUCCESS",
+    "system": "argocd",
+    "author": "deploy-bot",
+    "timestamp": "0",
+    "tags": ["deploy", "production"],
+    "assignee": "",
+    "artifacts": "",
+    "url": ""
+  },
+  {
+    "title": "High memory usage detected",
+    "message": "Pod homerun-api memory at 85%",
+    "severity": "WARNING",
+    "system": "grafana",
+    "author": "alertmanager",
+    "timestamp": "0",
+    "tags": ["monitoring", "memory"],
+    "assignee": "oncall",
+    "artifacts": "",
+    "url": "https://grafana.example.com/d/alerts"
+  },
+  {
+    "title": "New release published",
+    "message": "homerun-library v2.1.0 released",
+    "severity": "INFO",
+    "system": "github",
+    "author": "release-bot",
+    "timestamp": "0",
+    "tags": ["release"],
+    "assignee": "",
+    "artifacts": "",
+    "url": "https://github.com/stuttgart-things/homerun-library/releases/v2.1.0"
+  }
+]
