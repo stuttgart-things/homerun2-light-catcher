@@ -76,7 +76,7 @@ func (s *Server) addEvent(action string, state WLEDState) {
 		}
 		summary = fmt.Sprintf("ON - %s, bri=%d (%d seg)", effectName, state.Bri, len(state.Seg))
 	} else {
-		summary = "OFF"
+		summary = stateOff
 	}
 
 	s.eventBuffer[s.eventCount%50] = Event{
@@ -87,6 +87,8 @@ func (s *Server) addEvent(action string, state WLEDState) {
 	}
 	s.eventCount++
 }
+
+const stateOff = "OFF"
 
 // Validation limits.
 const (
@@ -283,7 +285,7 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) printStateColors(state WLEDState) {
-	onOff := "OFF"
+	onOff := stateOff
 	if state.On {
 		onOff = "ON"
 	}
@@ -445,7 +447,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
 <div id="endpoint"></div>`)
 
 	statusClass := "off"
-	statusText := "OFF"
+	statusText := stateOff
 	if state.On {
 		statusClass = "on"
 		statusText = "ON"

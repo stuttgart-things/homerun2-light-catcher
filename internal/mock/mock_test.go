@@ -39,7 +39,7 @@ func TestHandleState_GET(t *testing.T) {
 	s := NewServer()
 	handler := s.Handler()
 
-	req := httptest.NewRequest(http.MethodGet, "/json/state", nil)
+	req := httptest.NewRequest(http.MethodGet, "/json/state", http.NoBody)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -92,7 +92,7 @@ func TestHandleAPIReset(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	// Reset
-	req = httptest.NewRequest(http.MethodPost, "/api/reset", nil)
+	req = httptest.NewRequest(http.MethodPost, "/api/reset", http.NoBody)
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -101,7 +101,7 @@ func TestHandleAPIReset(t *testing.T) {
 	}
 
 	// Verify reset state
-	req = httptest.NewRequest(http.MethodGet, "/json/state", nil)
+	req = httptest.NewRequest(http.MethodGet, "/json/state", http.NoBody)
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -116,7 +116,7 @@ func TestHandleHealthz(t *testing.T) {
 	s := NewServer()
 	handler := s.Handler()
 
-	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/healthz", http.NoBody)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -134,7 +134,7 @@ func TestHandleAPIState(t *testing.T) {
 	s := NewServer()
 	handler := s.Handler()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/state", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/state", http.NoBody)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 

@@ -28,7 +28,7 @@ func LogHandler() MessageHandler {
 // LightHandler returns a MessageHandler that triggers WLED effects based on the profile.
 func LightHandler(profilePath string) MessageHandler {
 	return func(msg models.CaughtMessage) {
-		if !messageTimeValid(msg.Timestamp, 3) {
+		if !messageTimeValid(msg.Timestamp) {
 			slog.Warn("message too old, skipping light trigger",
 				"objectId", msg.ObjectID,
 				"timestamp", msg.Timestamp,
@@ -40,8 +40,10 @@ func LightHandler(profilePath string) MessageHandler {
 	}
 }
 
-// messageTimeValid checks if a message timestamp is within maxDiff seconds of now.
-func messageTimeValid(timestamp string, maxDiff int64) bool {
+const maxTimeDiff int64 = 3
+
+// messageTimeValid checks if a message timestamp is within maxTimeDiff seconds of now.
+func messageTimeValid(timestamp string) bool {
 	ts, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
 		slog.Debug("invalid timestamp, allowing message", "timestamp", timestamp)
@@ -49,7 +51,7 @@ func messageTimeValid(timestamp string, maxDiff int64) bool {
 	}
 
 	diff := time.Now().Unix() - ts
-	return diff >= -maxDiff && diff <= maxDiff
+	return diff >= -maxTimeDiff && diff <= maxTimeDiff
 }
 
 func severityToLevel(severity string) slog.Level {

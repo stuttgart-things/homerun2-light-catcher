@@ -7,10 +7,12 @@ import (
 )
 
 func TestCatcherInterface(t *testing.T) {
+	t.Parallel()
 	var _ catcher.Catcher = catcher.NewMockCatcher()
 }
 
 func TestMockCatcherRunAndShutdown(t *testing.T) {
+	t.Parallel()
 	mock := catcher.NewMockCatcher()
 
 	done := make(chan struct{})

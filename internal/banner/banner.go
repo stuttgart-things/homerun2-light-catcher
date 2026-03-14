@@ -37,6 +37,7 @@ var lightArt = []string{
 }
 
 const fieldWidth = 70
+const maxFrames = 40
 
 var (
 	yellowHot = lipgloss.NewStyle().
@@ -110,7 +111,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tickCmd()
 		}
-		if m.frame >= 40 {
+		if m.frame >= maxFrames {
 			m.done = true
 			return m, tea.Quit
 		}

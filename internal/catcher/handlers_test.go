@@ -8,20 +8,20 @@ import (
 
 func TestMessageTimeValid_Current(t *testing.T) {
 	ts := fmt.Sprintf("%d", time.Now().Unix())
-	if !messageTimeValid(ts, 3) {
+	if !messageTimeValid(ts) {
 		t.Error("current timestamp should be valid")
 	}
 }
 
 func TestMessageTimeValid_TooOld(t *testing.T) {
 	ts := fmt.Sprintf("%d", time.Now().Unix()-10)
-	if messageTimeValid(ts, 3) {
+	if messageTimeValid(ts) {
 		t.Error("10s old timestamp should be invalid with 3s window")
 	}
 }
 
 func TestMessageTimeValid_InvalidFormat(t *testing.T) {
-	if !messageTimeValid("not-a-number", 3) {
+	if !messageTimeValid("not-a-number") {
 		t.Error("invalid timestamp should be allowed (returns true)")
 	}
 }
