@@ -41,76 +41,109 @@ Available effects: Solid, Blink, Breathe, Wipe, Scan, Twinkle, Fireworks, Rainbo
 
 Color palettes: `sunset`, `beach`, `forest`, `ocean` — or single colors: `red`, `yellow`, `green`, `blue`, `white`
 
-## WLED Mock
+## Dashboards
 
-A built-in mock server with a live HTML dashboard for development — no real WLED hardware needed.
+Both the light-catcher and the WLED mock serve dashboards with the HOMERUN² design (Press Start 2P header, purple gradient, stuttgart-things footer).
 
-<details>
-<summary><b>Screenshot</b></summary>
+| Dashboard | URL | Shows |
+|-----------|-----|-------|
+| **Light Catcher** | `http://localhost:8080/` | Light event timeline with severity, system, effect, color |
+| **WLED Mock** | `http://localhost:9090/` (embedded) or `http://localhost:8080/` (standalone) | WLED state, segments, colors, event timeline with trigger context |
 
-The dashboard shows:
-- ON/OFF status with glow effect
-- Segment cards with effect name, speed, intensity
-- Color blocks that light up when active
-- Event timeline with timestamps
+The light-catcher dashboard shows events as they are triggered. The mock dashboard shows what the WLED device receives, including severity/system/effect metadata from the light-catcher.
 
-</details>
+## Running Modes
 
-<details>
-<summary><b>Run standalone</b></summary>
+### Production — with real WLED device
 
-```bash
-go run ./cmd/wled-mock/
-# Dashboard at http://localhost:8080
+Profile endpoints point to real WLED hardware. No mock needed.
+
+```yaml
+effects:
+  error:
+    systems: ["*"]
+    severity: [ERROR]
+    fx: Blurz
+    duration: 3
+    color: sunset
+    endpoint: http://192.168.1.100  # real WLED device
 ```
 
-</details>
+```bash
+REDIS_ADDR=redis-host PROFILE_PATH=profile.yaml go run .
+# Light-catcher dashboard at http://localhost:8080
+```
 
-<details>
-<summary><b>Run embedded with light-catcher</b></summary>
+### Development — with embedded mock
+
+Set `MOCK_WLED=true` to start the mock server inside the light-catcher process. Profile endpoints point to the embedded mock.
 
 ```bash
 MOCK_WLED=true MOCK_WLED_PORT=9090 \
 PROFILE_PATH=tests/profile.yaml \
 LOG_FORMAT=text REDIS_ADDR=localhost \
 go run .
+# Light-catcher dashboard at http://localhost:8080
 # Mock dashboard at http://localhost:9090
 ```
 
-</details>
+### Kubernetes — with standalone mock
+
+In Kubernetes, the mock runs as a separate deployment. Profile endpoints point to the mock's service DNS. Both are exposed via HTTPRoute with their own dashboards.
+
+```yaml
+# profile.yaml — endpoints point to mock service
+effects:
+  error:
+    systems: ["*"]
+    severity: [ERROR]
+    fx: Blurz
+    duration: 3
+    color: sunset
+    endpoint: http://homerun2-wled-mock.homerun2.svc.cluster.local
+```
+
+Deploy via Flux app (see [flux/apps/homerun2](https://github.com/stuttgart-things/flux/tree/main/apps/homerun2)):
+
+| Service | Image | Dashboard |
+|---------|-------|-----------|
+| light-catcher | `ghcr.io/stuttgart-things/homerun2-light-catcher` | `https://light-catcher.<DOMAIN>` |
+| wled-mock | `ghcr.io/stuttgart-things/homerun2-wled-mock` | `https://wled-mock.<DOMAIN>` |
+
+### WLED Mock Standalone
+
+Run the mock as a standalone binary for testing without Redis:
+
+```bash
+go run ./cmd/wled-mock/
+# Dashboard at http://localhost:8080
+```
+
+## Container Images
+
+Both images are built with [ko](https://ko.build) on top of `cgr.dev/chainguard/static` and published to GitHub Container Registry on every release.
+
+| Image | Description |
+|-------|-------------|
+| `ghcr.io/stuttgart-things/homerun2-light-catcher:<tag>` | Main light-catcher service |
+| `ghcr.io/stuttgart-things/homerun2-wled-mock:<tag>` | Standalone WLED mock server |
+
+```bash
+docker pull ghcr.io/stuttgart-things/homerun2-light-catcher:<tag>
+docker pull ghcr.io/stuttgart-things/homerun2-wled-mock:<tag>
+```
 
 ## Deployment
 
 <details>
-<summary><b>Run locally</b></summary>
+<summary><b>Run locally (with Redis + embedded mock)</b></summary>
 
 ```bash
 # Start Redis (via Dagger)
 task run-redis-as-service
 
 # Run the light-catcher with embedded mock
-MOCK_WLED=true PROFILE_PATH=tests/profile.yaml \
-REDIS_ADDR=localhost LOG_FORMAT=text go run .
-```
-
-</details>
-
-<details>
-<summary><b>Container image (ko / ghcr.io)</b></summary>
-
-The container image is built with [ko](https://ko.build) on top of `cgr.dev/chainguard/static` and published to GitHub Container Registry.
-
-```bash
-# Pull the image
-docker pull ghcr.io/stuttgart-things/homerun2-light-catcher:<tag>
-
-# Run with Docker
-docker run \
-  -e REDIS_ADDR=redis -e REDIS_PORT=6379 \
-  -e REDIS_STREAM=messages \
-  -e PROFILE_PATH=/config/profile.yaml \
-  -v ./tests/profile.yaml:/config/profile.yaml:ro \
-  ghcr.io/stuttgart-things/homerun2-light-catcher:<tag>
+task run-with-mock
 ```
 
 </details>
@@ -140,14 +173,16 @@ internal/
   banner/                  # Animated startup banner (Bubble Tea)
   catcher/                 # Catcher interface (Redis consumer, handlers, mock)
   config/                  # Env-based config loading, slog setup
+  dashboard/               # Light event tracker + HTMX dashboard
   handlers/                # Health endpoint
   mock/                    # WLED mock server with HTML dashboard
   models/                  # CaughtMessage struct
   profile/                 # YAML profile loading, effect matching, color palettes
   wled/                    # WLED HTTP client
-dagger/                    # CI functions (Lint, Build, Test, Scan)
-kcl/                       # KCL deployment manifests (Kubernetes)
-tests/                     # Test data (profiles, deploy config, integration messages)
+dagger/                    # CI functions (Lint, Build, BuildMockImage, Test, Scan)
+kcl/                       # KCL deployment manifests (light-catcher)
+kcl-wled-mock/             # KCL deployment manifests (WLED mock)
+tests/                     # Test data (profiles, deploy config)
 ```
 
 </details>
@@ -262,7 +297,9 @@ config.healthPort: "8080"
 ## Links
 
 - [Releases](https://github.com/stuttgart-things/homerun2-light-catcher/releases)
-- [Container Images](https://github.com/stuttgart-things/homerun2-light-catcher/pkgs/container/homerun2-light-catcher)
+- [Light Catcher Image](https://github.com/stuttgart-things/homerun2-light-catcher/pkgs/container/homerun2-light-catcher)
+- [WLED Mock Image](https://github.com/orgs/stuttgart-things/packages/container/package/homerun2-wled-mock)
+- [Flux App](https://github.com/stuttgart-things/flux/tree/main/apps/homerun2) (Kubernetes deployment)
 - [homerun2-omni-pitcher](https://github.com/stuttgart-things/homerun2-omni-pitcher) (producer)
 - [homerun2-core-catcher](https://github.com/stuttgart-things/homerun2-core-catcher) (sibling consumer)
 - [homerun-library](https://github.com/stuttgart-things/homerun-library) (shared library)
