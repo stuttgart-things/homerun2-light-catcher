@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.3.0...v0.4.0) (2026-03-15)
+
+
+### Features
+
+* add light catcher dashboard and CI for both images ([843b905](https://github.com/stuttgart-things/homerun2-light-catcher/commit/843b9051473610bd187a19d1f959d910d5da5ad3))
+
 # [0.3.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.2.0...v0.3.0) (2026-03-15)
 
 
