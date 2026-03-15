@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.4.0...v0.4.1) (2026-03-15)
+
+
+### Bug Fixes
+
+* add explicit packages:write permission to wled-mock release job ([ab6939d](https://github.com/stuttgart-things/homerun2-light-catcher/commit/ab6939df986a65c4c52eec3890565116e74d9fe7))
+
 # [0.4.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.3.0...v0.4.0) (2026-03-15)
 
 
