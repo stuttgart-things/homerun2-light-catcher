@@ -1,0 +1,3 @@
+config.image: ghcr.io/stuttgart-things/homerun2-wled-mock:latest
+config.namespace: homerun2
+config.appPort: "8080"
