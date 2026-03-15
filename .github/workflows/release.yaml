@@ -7,6 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   release:
     if: >-
@@ -21,3 +25,74 @@ jobs:
       kcl-profile-file: tests/kcl-deploy-profile.yaml
       kustomize-oci-repo: ghcr.io/stuttgart-things/homerun2-light-catcher-kustomize
     secrets: inherit # pragma: allowlist secret
+
+  release-wled-mock:
+    name: Release WLED Mock
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get latest release version
+        id: version
+        run: |
+          git fetch --tags
+          VERSION=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
+          if [ -z "$VERSION" ]; then
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "new_release=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Detected version: $VERSION"
+          fi
+
+      - name: Set up Ko
+        if: steps.version.outputs.new_release == 'true'
+        uses: ko-build/setup-ko@v0.9
+
+      - name: Login to GHCR
+        if: steps.version.outputs.new_release == 'true'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | ko login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push WLED mock image
+        if: steps.version.outputs.new_release == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ko build --bare --tags="${VERSION},latest" ./cmd/wled-mock \
+            --platform=linux/amd64,linux/arm64
+        env:
+          KO_DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/homerun2-wled-mock
+          VERSION: ${{ steps.version.outputs.version }}
+          COMMIT: ${{ github.sha }}
+
+      - name: Push WLED mock kustomize base
+        if: steps.version.outputs.new_release == 'true'
+        uses: dagger/dagger-for-github@v8.4.0
+        with:
+          module: github.com/stuttgart-things/dagger/kcl@v0.82.1
+          call: >-
+            push-kustomize-base
+            --source ./kcl-wled-mock
+            --parameters-file ./tests/kcl-wled-mock-profile.yaml
+            --address ghcr.io/stuttgart-things/homerun2-wled-mock-kustomize
+            --tag ${{ steps.version.outputs.version }}
+            --user env:GITHUB_USER
+            --password env:GITHUB_TOKEN
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: steps.version.outputs.new_release == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "## WLED Mock Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | Reference |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image** | \`ghcr.io/${{ github.repository_owner }}/homerun2-wled-mock:${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Kustomize** | \`ghcr.io/stuttgart-things/homerun2-wled-mock-kustomize:${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
