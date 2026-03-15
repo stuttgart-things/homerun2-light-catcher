@@ -30,6 +30,9 @@ jobs:
     name: Release WLED Mock
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
