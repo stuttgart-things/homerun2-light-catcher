@@ -24,7 +24,7 @@ func TestSendEffect(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	err := SendEffect(srv.URL, 13, [][3]int{{255, 0, 0}, {0, 255, 0}})
+	err := SendEffect(srv.URL, 13, [][3]int{{255, 0, 0}, {0, 255, 0}}, EffectMeta{})
 	if err != nil {
 		t.Fatalf("SendEffect: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestSendEffect_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	err := SendEffect(srv.URL, 0, [][3]int{{255, 255, 255}})
+	err := SendEffect(srv.URL, 0, [][3]int{{255, 255, 255}}, EffectMeta{})
 	if err == nil {
 		t.Error("expected error for 500 response")
 	}

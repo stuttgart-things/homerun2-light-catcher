@@ -36,6 +36,18 @@ type Event struct {
 	Action    string `json:"action"`
 	On        bool   `json:"on"`
 	Summary   string `json:"summary"`
+	Severity  string `json:"severity,omitempty"`
+	System    string `json:"system,omitempty"`
+	Effect    string `json:"effect,omitempty"`
+	Color     string `json:"color,omitempty"`
+}
+
+// eventMeta holds metadata from the light-catcher payload.
+type eventMeta struct {
+	Severity string `json:"_severity"`
+	System   string `json:"_system"`
+	Effect   string `json:"_effect"`
+	Color    string `json:"_color"`
 }
 
 // Server is the WLED mock server.
@@ -67,11 +79,11 @@ func NewServer(version, commit, date string) *Server {
 		},
 		effectNames: profile.ReverseFxMap(),
 	}
-	s.addEvent("initial", s.state)
+	s.addEvent("initial", s.state, nil)
 	return s
 }
 
-func (s *Server) addEvent(action string, state WLEDState) {
+func (s *Server) addEvent(action string, state WLEDState, meta *eventMeta) {
 	var summary string
 	if state.On {
 		effectName := "Solid"
@@ -85,12 +97,19 @@ func (s *Server) addEvent(action string, state WLEDState) {
 		summary = stateOff
 	}
 
-	s.eventBuffer[s.eventCount%50] = Event{
+	ev := Event{
 		Timestamp: time.Now().Format("15:04:05"),
 		Action:    action,
 		On:        state.On,
 		Summary:   summary,
 	}
+	if meta != nil {
+		ev.Severity = meta.Severity
+		ev.System = meta.System
+		ev.Effect = meta.Effect
+		ev.Color = meta.Color
+	}
+	s.eventBuffer[s.eventCount%50] = ev
 	s.eventCount++
 }
 
@@ -195,11 +214,19 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Parse optional metadata from light-catcher
+		var meta eventMeta
+		json.Unmarshal(body, &meta)
+		var metaPtr *eventMeta
+		if meta.Severity != "" || meta.System != "" {
+			metaPtr = &meta
+		}
+
 		s.mu.Lock()
 		s.state = newState
 		s.requestCount++
 		s.lastUpdated = time.Now()
-		s.addEvent("POST", newState)
+		s.addEvent("POST", newState, metaPtr)
 		s.mu.Unlock()
 
 		s.printStateColors(newState)
@@ -285,7 +312,7 @@ func (s *Server) handleAPIReset(w http.ResponseWriter, r *http.Request) {
 	s.requestCount = 0
 	s.lastUpdated = time.Time{}
 	s.eventCount = 0
-	s.addEvent("reset", s.state)
+	s.addEvent("reset", s.state, nil)
 	s.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -450,9 +477,16 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
   }
   .event-dot.on { background-color: #00e676; box-shadow: 0 0 6px #00e676; }
   .event-dot.off { background-color: #64748b; }
-  .event-time { color: #64748b; }
+  .event-time { color: #64748b; font-family: 'Courier New', monospace; }
   .event-action { color: #818cf8; width: 56px; }
   .event-summary { color: #e2e8f0; }
+  .event-badge { font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; min-width: 60px; text-align: center; }
+  .sev-error { background: rgba(255,68,68,0.2); color: #ff4444; }
+  .sev-warning { background: rgba(249,115,22,0.2); color: #f97316; }
+  .sev-success { background: rgba(74,222,128,0.2); color: #4ade80; }
+  .sev-info { background: rgba(96,165,250,0.2); color: #60a5fa; }
+  .event-meta { color: #818cf8; min-width: 80px; }
+  .event-meta-effect { color: #e2e8f0; }
   .build-footer { background: #1e293b; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
   .build-footer .label { color: #64748b; }
   .build-footer .value { color: #818cf8; }
@@ -554,7 +588,14 @@ function updateDashboard() {
         tlHtml += '<span class="event-dot ' + dotClass + '"></span>';
         tlHtml += '<span class="event-time">' + ev.timestamp + '</span>';
         tlHtml += '<span class="event-action">' + ev.action + '</span>';
-        tlHtml += '<span class="event-summary">' + ev.summary + '</span>';
+        if (ev.severity) {
+          var sevCls = ev.severity.toUpperCase() === 'ERROR' ? 'sev-error' : ev.severity.toUpperCase() === 'WARNING' ? 'sev-warning' : ev.severity.toUpperCase() === 'SUCCESS' ? 'sev-success' : 'sev-info';
+          tlHtml += '<span class="event-badge ' + sevCls + '">' + ev.severity.toUpperCase() + '</span>';
+          tlHtml += '<span class="event-meta">' + ev.system + '</span>';
+          tlHtml += '<span class="event-meta-effect">' + ev.effect + ' / ' + ev.color + '</span>';
+        } else {
+          tlHtml += '<span class="event-summary">' + ev.summary + '</span>';
+        }
         tlHtml += '</div>';
       }
       tl.innerHTML = tlHtml;
