@@ -42,7 +42,7 @@ func main() {
 	if mockWLED != "" {
 		mockPort := homerun.GetEnv("MOCK_WLED_PORT", "9090")
 		slog.Info("starting embedded WLED mock", "port", mockPort)
-		mockServer := mock.NewServer()
+		mockServer := mock.NewServer(version, commit, date)
 		go mockServer.Run(mockPort)
 	}
 

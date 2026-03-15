@@ -10,7 +10,7 @@ import (
 )
 
 func TestHandleState_POST(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	body := `{"on":true,"bri":200,"seg":[{"fx":13,"sx":128,"ix":255,"col":[[255,0,0]]}]}`
@@ -36,7 +36,7 @@ func TestHandleState_POST(t *testing.T) {
 }
 
 func TestHandleState_GET(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	req := httptest.NewRequest(http.MethodGet, "/json/state", http.NoBody)
@@ -55,7 +55,7 @@ func TestHandleState_GET(t *testing.T) {
 }
 
 func TestHandleState_InvalidJSON(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	req := httptest.NewRequest(http.MethodPost, "/json/state", strings.NewReader("not json"))
@@ -68,7 +68,7 @@ func TestHandleState_InvalidJSON(t *testing.T) {
 }
 
 func TestHandleState_ValidationError(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	body := `{"on":true,"bri":300}`
@@ -82,7 +82,7 @@ func TestHandleState_ValidationError(t *testing.T) {
 }
 
 func TestHandleAPIReset(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	// Set some state first
@@ -113,7 +113,7 @@ func TestHandleAPIReset(t *testing.T) {
 }
 
 func TestHandleHealthz(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", http.NoBody)
@@ -131,7 +131,7 @@ func TestHandleHealthz(t *testing.T) {
 }
 
 func TestHandleAPIState(t *testing.T) {
-	s := NewServer()
+	s := NewServer("test", "abc1234", "2026-01-01")
 	handler := s.Handler()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/state", http.NoBody)
