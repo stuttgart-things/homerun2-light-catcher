@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.1.0...v0.2.0) (2026-03-15)
+
+
+### Features
+
+* add mkdocs documentation and backstage catalog-info ([2996f73](https://github.com/stuttgart-things/homerun2-light-catcher/commit/2996f732e0db5f87c8b844faf9dc54967f45d750))
+
 ## [0.1.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.1.0...v0.1.1) (2026-03-14)
 
 
