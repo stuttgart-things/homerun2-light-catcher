@@ -42,7 +42,8 @@ func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTr
 		return
 	}
 
-	if err := SendEffect(effect.Endpoint, fx, colors); err != nil {
+	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color}
+	if err := SendEffect(effect.Endpoint, fx, colors, meta); err != nil {
 		slog.Error("failed to send WLED effect", "endpoint", effect.Endpoint, "error", err)
 		return
 	}
@@ -75,8 +76,17 @@ func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTr
 	}
 }
 
+// EffectMeta carries context about what triggered the WLED effect.
+// Real WLED devices ignore unknown fields; the mock uses them for display.
+type EffectMeta struct {
+	Severity string
+	System   string
+	Effect   string
+	Color    string
+}
+
 // SendEffect sends an effect payload to the WLED JSON API.
-func SendEffect(endpoint string, fx int, colors [][3]int) error {
+func SendEffect(endpoint string, fx int, colors [][3]int, meta EffectMeta) error {
 	payload := map[string]any{
 		"on": true,
 		"seg": []map[string]any{
@@ -87,6 +97,10 @@ func SendEffect(endpoint string, fx int, colors [][3]int) error {
 				"col": colors,
 			},
 		},
+		"_severity": meta.Severity,
+		"_system":   meta.System,
+		"_effect":   meta.Effect,
+		"_color":    meta.Color,
 	}
 
 	return postState(endpoint, payload)
