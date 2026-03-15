@@ -5,7 +5,7 @@
 *.so
 *.dylib
 homerun2-light-catcher
-wled-mock
+/wled-mock
 
 # Test
 *.test

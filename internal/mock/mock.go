@@ -47,11 +47,17 @@ type Server struct {
 	requestCount int
 	lastUpdated  time.Time
 	effectNames  map[int]string
+	version      string
+	commit       string
+	date         string
 }
 
 // NewServer creates a new WLED mock server with default state.
-func NewServer() *Server {
+func NewServer(version, commit, date string) *Server {
 	s := &Server{
+		version: version,
+		commit:  commit,
+		date:    date,
 		state: WLEDState{
 			On:  false,
 			Bri: 128,
@@ -89,6 +95,13 @@ func (s *Server) addEvent(action string, state WLEDState) {
 }
 
 const stateOff = "OFF"
+
+func shortCommit(c string) string {
+	if len(c) > 7 {
+		return c[:7]
+	}
+	return c
+}
 
 // Validation limits.
 const (
@@ -312,10 +325,10 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	fxNamesJSON, _ := json.Marshal(s.effectNames)
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, generateDashboardHTML(state, s.effectNames, string(fxNamesJSON)))
+	fmt.Fprint(w, generateDashboardHTML(state, s.effectNames, string(fxNamesJSON), s.version, s.commit, s.date))
 }
 
-func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJSON string) string {
+func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJSON, version, commit, date string) string {
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>HOMERUN² WLED Mock</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -323,7 +336,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    background-color: #0f172a;
+    background-color: #1e293b;
     color: #e0e0e0;
     min-height: 100vh;
     display: flex;
@@ -336,14 +349,8 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
   .header-bar .actions a { color: #e2e8f0; font-size: 0.85rem; text-decoration: none; }
   .header-bar .actions a:hover { color: #f8fafc; }
   .main-content { flex: 1; }
-  #endpoint {
-    text-align: center;
-    color: #64748b;
-    font-size: 14px;
-    margin: 16px 0;
-    font-family: 'Courier New', monospace;
-  }
   .status {
+    margin-top: 20px;
     text-align: center;
     font-size: 22px;
     font-weight: bold;
@@ -461,8 +468,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     <a href="/api/reset" onclick="fetch('/api/reset',{method:'POST'});setTimeout(function(){location.reload()},300);return false;">Reset</a>
   </div>
 </div>
-<div class="main-content">
-<div id="endpoint"></div>`)
+<div class="main-content">`)
 
 	statusClass := "off"
 	statusText := stateOff
@@ -556,18 +562,18 @@ function updateDashboard() {
     .catch(function(err) { console.error('Error fetching state:', err); });
 }
 
-document.getElementById('endpoint').textContent = window.location.origin + '/json/state';
 updateDashboard();
 setInterval(updateDashboard, 2000);
 </script>
 <div class="build-footer">
   <div style="display:flex;gap:1.5rem">
-    <div><span class="label">service</span> <span class="value">wled-mock</span></div>
-    <div><span class="label">api</span> <span class="value">/json/state</span></div>
+    <div><span class="label">version</span> <span class="value">%s</span></div>
+    <div><span class="label">commit</span> <span class="value">%s</span></div>
+    <div><span class="label">built</span> <span class="value">%s</span></div>
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem"><span class="label">a</span> <a href="https://github.com/stuttgart-things" target="_blank" style="color:#818cf8;text-decoration:none">stuttgart-things</a> <span class="label">project</span> <img src="https://raw.githubusercontent.com/stuttgart-things/docs/main/hugo/sthings-logo.png" alt="sthings" style="height:24px;"></div>
 </div>
-</body></html>`, fxNamesJSON)
+</body></html>`, fxNamesJSON, version, shortCommit(commit), date)
 
 	return sb.String()
 }
