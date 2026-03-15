@@ -1,11 +1,11 @@
-## [1.0.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.0.0...v1.0.1) (2026-03-14)
+## [0.1.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.1.0...v0.1.1) (2026-03-14)
 
 
 ### Bug Fixes
 
 * resolve 8 golangci-lint issues ([87ba1f2](https://github.com/stuttgart-things/homerun2-light-catcher/commit/87ba1f289372ef64dcb4136ab8824b706c6e1d3d))
 
-# 1.0.0 (2026-03-14)
+# 0.1.0 (2026-03-14)
 
 
 ### Features
