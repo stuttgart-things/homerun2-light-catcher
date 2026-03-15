@@ -130,6 +130,51 @@ tasks:
         REDIS_ADDR=localhost \
         go run .
 
+  # === WLED Mock Image Build ===
+
+  build-scan-mock-image-ko:
+    desc: Build, push and scan WLED mock container image with ko
+    cmds:
+      - |
+        RANDOM_TAG=$(openssl rand -hex 6)
+        REPO_NAME="ttl.sh/{{ .PROJECT }}-wled-mock-${RANDOM_TAG}"
+
+        echo "Building and pushing WLED mock to: ${REPO_NAME}"
+
+        IMAGE_REF=$(dagger call -m {{ .DAGGER_MODULE_DIR }} build-mock-image \
+          --src "{{ .SOURCE_CODE_DIR }}" \
+          --repo "$REPO_NAME" \
+          --push="true" \
+          --progress plain)
+
+        echo "Image pushed: $IMAGE_REF"
+        echo "Scanning with Trivy..."
+
+        dagger call -m {{ .DAGGER_MODULE_DIR }} scan-image \
+          --image-ref "$IMAGE_REF" \
+          --severity "HIGH,CRITICAL" \
+          --progress plain \
+          export --path=/tmp/trivy-scan-{{ .PROJECT }}-wled-mock.json
+
+        echo "Build and scan complete!"
+
+  # === WLED Mock KCL Rendering ===
+
+  render-mock-manifests:
+    desc: Render WLED mock Kubernetes manifests
+    vars:
+      SOURCE: '{{ .SOURCE | default "kcl-wled-mock" }}'
+      PROFILE: '{{ .PROFILE | default "tests/kcl-wled-mock-profile.yaml" }}'
+      DESTINATION: '{{ .DESTINATION | default "/tmp/rendered-wled-mock.yaml" }}'
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_KCL_MODULE }} run \
+          --source "{{ .SOURCE }}" \
+          --parameters-file="{{ .PROFILE }}" \
+          export --path="{{ .DESTINATION }}"
+
+        echo "WLED mock manifests rendered: {{ .DESTINATION }}"
+
   # === Release ===
 
   trigger-release:

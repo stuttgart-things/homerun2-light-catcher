@@ -85,6 +85,23 @@ func (m *Dagger) ScanImage(
 	})
 }
 
+// BuildMockImage builds a container image for the WLED mock server using ko
+func (m *Dagger) BuildMockImage(
+	ctx context.Context,
+	src *dagger.Directory,
+	// +optional
+	// +default="ko.local/homerun2-wled-mock"
+	repo string,
+	// +optional
+	// +default="false"
+	push string,
+) (string, error) {
+	return dag.Go().KoBuild(ctx, src, dagger.GoKoBuildOpts{
+		Repo: repo,
+		Push: push,
+	})
+}
+
 // BuildAndTestBinary builds the binary and runs integration tests with Redis
 func (m *Dagger) BuildAndTestBinary(
 	ctx context.Context,
