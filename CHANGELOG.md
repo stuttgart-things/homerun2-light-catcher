@@ -1,3 +1,12 @@
+# [0.3.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.2.0...v0.3.0) (2026-03-15)
+
+
+### Features
+
+* add build info to mock dashboard footer and lighten background ([2da7bd6](https://github.com/stuttgart-things/homerun2-light-catcher/commit/2da7bd6a744614e1df5adb71b201f42cad5f8581)), closes [#0f172a](https://github.com/stuttgart-things/homerun2-light-catcher/issues/0f172a) [#1e293b](https://github.com/stuttgart-things/homerun2-light-catcher/issues/1e293b)
+* add WLED mock container image build and KCL deployment manifests ([c00426c](https://github.com/stuttgart-things/homerun2-light-catcher/commit/c00426cfca022fc824037b18fc06992d490a2fec)), closes [#2](https://github.com/stuttgart-things/homerun2-light-catcher/issues/2)
+* align WLED mock dashboard with core-catcher design ([096084c](https://github.com/stuttgart-things/homerun2-light-catcher/commit/096084cbb908634587e3884c12adb2767cc89a0f)), closes [#0f172a](https://github.com/stuttgart-things/homerun2-light-catcher/issues/0f172a) [#1e293b](https://github.com/stuttgart-things/homerun2-light-catcher/issues/1e293b) [#334155](https://github.com/stuttgart-things/homerun2-light-catcher/issues/334155) [#818cf8](https://github.com/stuttgart-things/homerun2-light-catcher/issues/818cf8) [#64748b](https://github.com/stuttgart-things/homerun2-light-catcher/issues/64748b)
+
 # [0.2.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.1.0...v0.2.0) (2026-03-15)
 
 
