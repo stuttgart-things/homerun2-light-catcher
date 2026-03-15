@@ -1,0 +1,11 @@
+site_name: Homerun2 Light Catcher
+site_description: Redis Streams consumer that triggers WLED light effects based on configurable YAML profiles
+
+nav:
+  - Home: index.md
+  - Effect Profiles: profiles.md
+  - Deployment: deployment.md
+  - CI/CD: cicd.md
+
+plugins:
+  - techdocs-core

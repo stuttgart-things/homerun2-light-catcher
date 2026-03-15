@@ -1,0 +1,29 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: homerun2-light-catcher
+  description: Redis Streams consumer that triggers WLED light effects based on configurable YAML profiles
+  annotations:
+    github.com/project-slug: stuttgart-things/homerun2-light-catcher
+    backstage.io/techdocs-ref: url:https://github.com/stuttgart-things/homerun2-light-catcher/tree/main
+    backstage.io/source-location: url:https://github.com/stuttgart-things/homerun2-light-catcher
+  tags:
+    - wled
+    - redis
+    - golang
+    - homerun2
+    - consumer
+    - alerting
+  links:
+    - url: https://github.com/stuttgart-things/homerun2-light-catcher
+      title: GitHub Repository
+      icon: github
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: homerun2
+  dependsOn:
+    - resource:redis
+    - resource:wled
