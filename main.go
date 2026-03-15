@@ -12,6 +12,7 @@ import (
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/banner"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/catcher"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/config"
+	"github.com/stuttgart-things/homerun2-light-catcher/internal/dashboard"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/handlers"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/mock"
 )
@@ -46,24 +47,30 @@ func main() {
 		go mockServer.Run(mockPort)
 	}
 
-	// Health endpoint
-	buildInfo := handlers.BuildInfo{Version: version, Commit: commit, Date: date}
+	// Event tracker for dashboard
+	tracker := dashboard.NewEventTracker()
+	dash := dashboard.NewHandler(tracker, version, commit, date)
+
+	// HTTP server with dashboard + health endpoints
 	go func() {
 		mux := http.NewServeMux()
-		healthHandler := handlers.NewHealthHandler(buildInfo)
+		healthHandler := handlers.NewHealthHandler(handlers.BuildInfo{
+			Version: version, Commit: commit, Date: date,
+		})
+		dash.RegisterRoutes(mux)
 		mux.HandleFunc("/health", healthHandler)
 		mux.HandleFunc("/healthz", healthHandler)
 
-		slog.Info("health server starting", "port", healthPort)
+		slog.Info("http server starting", "port", healthPort)
 		if err := http.ListenAndServe(":"+healthPort, mux); err != nil {
-			slog.Error("health server error", "error", err)
+			slog.Error("http server error", "error", err)
 		}
 	}()
 
 	// Build message handlers
 	msgHandlers := []catcher.MessageHandler{
 		catcher.LogHandler(),
-		catcher.LightHandler(profilePath),
+		catcher.LightHandler(profilePath, tracker),
 	}
 
 	// Create Redis catcher

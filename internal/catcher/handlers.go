@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/stuttgart-things/homerun2-light-catcher/internal/dashboard"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/models"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/wled"
 )
@@ -26,7 +27,7 @@ func LogHandler() MessageHandler {
 }
 
 // LightHandler returns a MessageHandler that triggers WLED effects based on the profile.
-func LightHandler(profilePath string) MessageHandler {
+func LightHandler(profilePath string, tracker *dashboard.EventTracker) MessageHandler {
 	return func(msg models.CaughtMessage) {
 		if !messageTimeValid(msg.Timestamp) {
 			slog.Warn("message too old, skipping light trigger",
@@ -36,7 +37,7 @@ func LightHandler(profilePath string) MessageHandler {
 			return
 		}
 
-		wled.SendToWLED(profilePath, msg.Severity, msg.System)
+		wled.SendToWLED(profilePath, msg.Severity, msg.System, tracker)
 	}
 }
 

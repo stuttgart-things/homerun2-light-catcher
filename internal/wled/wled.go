@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/stuttgart-things/homerun2-light-catcher/internal/dashboard"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/profile"
 )
 
@@ -16,7 +17,7 @@ var httpClient = &http.Client{
 }
 
 // SendToWLED loads the profile, matches an effect, and sends it to the WLED device.
-func SendToWLED(profilePath, severity, system string) {
+func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTracker) {
 	config, err := profile.LoadConfiguration(profilePath)
 	if err != nil {
 		slog.Error("failed to load profile", "error", err)
@@ -55,6 +56,10 @@ func SendToWLED(profilePath, severity, system string) {
 		"severity", severity,
 	)
 
+	if tracker != nil {
+		tracker.Record(severity, system, effect.Fx, effect.Color, effect.Endpoint)
+	}
+
 	if effect.Duration > 0 {
 		go func() {
 			time.Sleep(time.Duration(effect.Duration) * time.Second)
@@ -62,6 +67,9 @@ func SendToWLED(profilePath, severity, system string) {
 				slog.Error("failed to turn off WLED", "endpoint", effect.Endpoint, "error", err)
 			} else {
 				slog.Info("WLED light turned off", "endpoint", effect.Endpoint)
+				if tracker != nil {
+					tracker.RecordOff(effect.Endpoint)
+				}
 			}
 		}()
 	}
