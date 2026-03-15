@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.4.1...v0.5.0) (2026-03-15)
+
+
+### Features
+
+* show trigger context (severity, system, effect) on mock dashboard ([88b89a1](https://github.com/stuttgart-things/homerun2-light-catcher/commit/88b89a1bedbac809d8043c5565638a0f4324dec3))
+
 ## [0.4.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.4.0...v0.4.1) (2026-03-15)
 
 
