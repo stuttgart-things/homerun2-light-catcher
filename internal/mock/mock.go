@@ -317,27 +317,30 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJSON string) string {
 	var sb strings.Builder
-	sb.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>WLED Mock Dashboard</title>
+	sb.WriteString(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>HOMERUN² WLED Mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    background-color: #1a1a2e;
+    background-color: #0f172a;
     color: #e0e0e0;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
-  h1 {
-    text-align: center;
-    padding: 24px 0 8px;
-    font-size: 28px;
-    letter-spacing: 1px;
-    color: #fff;
-  }
+  .header-bar { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); color: #f8fafc; padding: 1.8rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #f97316; }
+  .header-bar h1 { margin: 0; font-family: 'Press Start 2P', cursive; font-size: 2.2rem; color: #ffffff; letter-spacing: 0.08em; text-shadow: 3px 3px 0px rgba(0,0,0,0.3); }
+  .header-bar .subtitle { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; color: #fbbf24; margin-top: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase; }
+  .header-bar .actions { display: flex; gap: 0.75rem; align-items: center; }
+  .header-bar .actions a { color: #e2e8f0; font-size: 0.85rem; text-decoration: none; }
+  .header-bar .actions a:hover { color: #f8fafc; }
+  .main-content { flex: 1; }
   #endpoint {
     text-align: center;
-    color: #888;
+    color: #64748b;
     font-size: 14px;
-    margin-bottom: 16px;
+    margin: 16px 0;
     font-family: 'Courier New', monospace;
   }
   .status {
@@ -351,7 +354,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     color: #00e676;
     text-shadow: 0 0 16px #00e676, 0 0 32px #00e67644;
   }
-  .status.off { color: #666; text-shadow: none; }
+  .status.off { color: #64748b; text-shadow: none; }
   .container {
     display: flex;
     flex-wrap: wrap;
@@ -360,11 +363,12 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     padding: 20px;
   }
   .segment {
-    background-color: #16213e;
+    background-color: #1e293b;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     padding: 16px;
     width: 260px;
+    border: 1px solid #334155;
     transition: filter 0.4s ease, opacity 0.4s ease;
   }
   .segment.dimmed { filter: grayscale(1); opacity: 0.5; }
@@ -378,7 +382,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
   .info {
     font-size: 13px;
     margin-bottom: 10px;
-    color: #aaa;
+    color: #818cf8;
     text-align: center;
   }
   .block {
@@ -400,19 +404,20 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
   .timeline-section {
     max-width: 600px;
     margin: 24px auto;
-    padding: 0 20px;
+    padding: 0 20px 20px;
   }
   .timeline-title {
     font-size: 16px;
     font-weight: bold;
-    color: #aaa;
+    color: #818cf8;
     margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 1px;
   }
   #timeline {
-    background-color: #0f0f23;
+    background-color: #1e293b;
     border-radius: 8px;
+    border: 1px solid #334155;
     padding: 12px;
     max-height: 260px;
     overflow-y: auto;
@@ -420,14 +425,14 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     font-size: 13px;
   }
   #timeline::-webkit-scrollbar { width: 6px; }
-  #timeline::-webkit-scrollbar-track { background: #0f0f23; border-radius: 3px; }
-  #timeline::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  #timeline::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+  #timeline::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
   .event-row {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 4px 0;
-    border-bottom: 1px solid #1a1a2e;
+    border-bottom: 1px solid #334155;
   }
   .event-row:last-child { border-bottom: none; }
   .event-dot {
@@ -437,13 +442,26 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     flex-shrink: 0;
   }
   .event-dot.on { background-color: #00e676; box-shadow: 0 0 6px #00e676; }
-  .event-dot.off { background-color: #555; }
-  .event-time { color: #666; }
-  .event-action { color: #888; width: 56px; }
-  .event-summary { color: #ccc; }
+  .event-dot.off { background-color: #64748b; }
+  .event-time { color: #64748b; }
+  .event-action { color: #818cf8; width: 56px; }
+  .event-summary { color: #e2e8f0; }
+  .build-footer { background: #1e293b; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
+  .build-footer .label { color: #64748b; }
+  .build-footer .value { color: #818cf8; }
 </style>
 </head><body>
-<h1>WLED Mock Dashboard</h1>
+<div class="header-bar">
+  <div>
+    <h1>HOMERUN²</h1>
+    <div class="subtitle">wled mock dashboard</div>
+  </div>
+  <div class="actions">
+    <a href="/api/state">API State</a>
+    <a href="/api/reset" onclick="fetch('/api/reset',{method:'POST'});setTimeout(function(){location.reload()},300);return false;">Reset</a>
+  </div>
+</div>
+<div class="main-content">
 <div id="endpoint"></div>`)
 
 	statusClass := "off"
@@ -478,7 +496,8 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
 	}
 	sb.WriteString("</div>")
 
-	sb.WriteString(`<div class="timeline-section"><div class="timeline-title">Event Timeline</div><div id="timeline"></div></div>`)
+	sb.WriteString(`<div class="timeline-section"><div class="timeline-title">Event Timeline</div><div id="timeline"></div></div>
+</div>`)
 
 	fmt.Fprintf(&sb, `
 <script>
@@ -541,6 +560,13 @@ document.getElementById('endpoint').textContent = window.location.origin + '/jso
 updateDashboard();
 setInterval(updateDashboard, 2000);
 </script>
+<div class="build-footer">
+  <div style="display:flex;gap:1.5rem">
+    <div><span class="label">service</span> <span class="value">wled-mock</span></div>
+    <div><span class="label">api</span> <span class="value">/json/state</span></div>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem"><span class="label">a</span> <a href="https://github.com/stuttgart-things" target="_blank" style="color:#818cf8;text-decoration:none">stuttgart-things</a> <span class="label">project</span> <img src="https://raw.githubusercontent.com/stuttgart-things/docs/main/hugo/sthings-logo.png" alt="sthings" style="height:24px;"></div>
+</div>
 </body></html>`, fxNamesJSON)
 
 	return sb.String()
