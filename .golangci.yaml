@@ -101,6 +101,14 @@ linters:
           - lll
           - mnd
         path: (.+)_test\.go
+      # Dashboard and mock servers embed large HTML/CSS/JS string literals.
+      # Reformatting the HTML to fit a 140-col limit hurts readability without
+      # improving safety, and the "7" magic number is a well-known hex-color
+      # length check (#RRGGBB). Exempt these files from lll/mnd.
+      - linters:
+          - lll
+          - mnd
+        path: internal/(dashboard|mock)/.+\.go
     paths:
       - third_party$
       - builtin$
