@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"syscall"
 
-	homerun "github.com/stuttgart-things/homerun-library/v2"
+	homerun "github.com/stuttgart-things/homerun-library/v3"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/banner"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/catcher"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/config"

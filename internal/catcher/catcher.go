@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	homerun "github.com/stuttgart-things/homerun-library/v2"
+	homerun "github.com/stuttgart-things/homerun-library/v3"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/models"
 	"github.com/stuttgart-things/redisqueue"
 )
