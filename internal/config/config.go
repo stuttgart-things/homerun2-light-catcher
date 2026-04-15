@@ -17,6 +17,38 @@ func LoadRedisConfig() homerun.RedisConfig {
 	}
 }
 
+// LoadStreams returns the list of Redis streams the catcher should subscribe to.
+//
+// Resolution:
+//  1. REDIS_STREAMS (comma-separated) — preferred, enables multi-stream subscription
+//  2. REDIS_STREAM — legacy single-stream env var, wrapped in a one-element list
+//  3. ["messages"] — hardcoded default
+//
+// Legacy single-stream deployments keep working unchanged.
+func LoadStreams() []string {
+	return ParseStreams(os.Getenv("REDIS_STREAMS"), os.Getenv("REDIS_STREAM"))
+}
+
+// ParseStreams is the pure resolution helper behind LoadStreams. Exposed for tests.
+func ParseStreams(streamsEnv, streamFallback string) []string {
+	if streamsEnv != "" {
+		parts := strings.Split(streamsEnv, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if s := strings.TrimSpace(p); s != "" {
+				out = append(out, s)
+			}
+		}
+		if len(out) > 0 {
+			return out
+		}
+	}
+	if streamFallback != "" {
+		return []string{streamFallback}
+	}
+	return []string{"messages"}
+}
+
 // SetupLogging configures slog as the default logger based on LOG_FORMAT and LOG_LEVEL env vars.
 func SetupLogging() {
 	format := strings.ToLower(homerun.GetEnv("LOG_FORMAT", "json"))
