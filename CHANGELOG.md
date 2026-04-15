@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.5.0...v0.6.0) (2026-04-15)
+
+
+### Features
+
+* multi-stream subscription (list of Redis streams) ([#13](https://github.com/stuttgart-things/homerun2-light-catcher/issues/13)) ([0bad474](https://github.com/stuttgart-things/homerun2-light-catcher/commit/0bad4749c2386ad7b150404604cf6b183d1c77e8)), closes [stuttgart-things/homerun2-core-catcher#53](https://github.com/stuttgart-things/homerun2-core-catcher/issues/53) [#12](https://github.com/stuttgart-things/homerun2-light-catcher/issues/12) [stuttgart-things/homerun-library#83](https://github.com/stuttgart-things/homerun-library/issues/83)
+
 # [0.5.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.4.1...v0.5.0) (2026-03-15)
 
 
