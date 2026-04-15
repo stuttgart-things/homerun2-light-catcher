@@ -36,7 +36,12 @@ type RedisCatcher struct {
 // NewRedisCatcher creates a consumer connected to the given Redis streams.
 // If streams is empty, it falls back to rc.Stream (legacy single-stream mode).
 // A single-element list behaves identically to the legacy configuration.
-func NewRedisCatcher(rc homerun.RedisConfig, streams []string, groupName, consumerName string, handlers ...MessageHandler) (*RedisCatcher, error) {
+func NewRedisCatcher(
+	rc homerun.RedisConfig,
+	streams []string,
+	groupName, consumerName string,
+	handlers ...MessageHandler,
+) (*RedisCatcher, error) {
 	if len(streams) == 0 {
 		if rc.Stream == "" {
 			return nil, fmt.Errorf("no streams configured: pass streams or set rc.Stream")
