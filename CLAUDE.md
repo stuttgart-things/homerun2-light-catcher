@@ -8,7 +8,7 @@ homerun2-light-catcher — Go microservice that consumes messages from Redis Str
 
 - **Language**: Go 1.25+
 - **Consumer**: Redis Streams via `redisqueue` (consumer groups)
-- **Library**: `homerun-library/v2` for shared types, Redis JSON, helpers
+- **Library**: `homerun-library/v3` for shared types, Redis JSON, helpers
 - **WLED**: HTTP client for WLED JSON API (`/json/state`)
 - **Build**: ko (`.ko.yaml`), no Dockerfile
 - **CI**: Dagger modules (`dagger/main.go`), Taskfile
