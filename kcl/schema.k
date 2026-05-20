@@ -49,6 +49,65 @@ schema LightCatcher:
     # Profile path inside container
     profilePath: str = "/config/profile.yaml"
 
+    # Profile data (WLED effect rules YAML content). Rendered into the
+    # `<name>-profile` ConfigMap that the Deployment mounts at /config.
+    # Default endpoint targets `homerun2-wled-mock` so the kustomize OCI
+    # is self-contained against the wled-mock kustomize OCI's Service
+    # (same component pair as upstream; deployable side-by-side in a
+    # single namespace).
+    profileData: str = """\
+---
+effects:
+  error-git:
+    systems:
+      - gitlab
+      - github
+    severity:
+      - ERROR
+    fx: Blurz
+    duration: 3
+    color: sunset
+    segments:
+      - 0
+    endpoint: http://homerun2-wled-mock
+
+  info:
+    systems:
+      - "*"
+    severity:
+      - INFO
+    fx: DJ Light
+    duration: 3
+    color: ocean
+    segments:
+      - 0
+    endpoint: http://homerun2-wled-mock
+
+  success:
+    systems:
+      - "*"
+    severity:
+      - SUCCESS
+    fx: Aurora
+    duration: 3
+    color: forest
+    segments:
+      - 0
+    endpoint: http://homerun2-wled-mock
+
+  warning:
+    systems:
+      - "*"
+    severity:
+      - WARNING
+    fx: Twinkle
+    duration: 3
+    color: beach
+    segments:
+      - 0
+    endpoint: http://homerun2-wled-mock
+"""
+
     # Extra environment variables
     extraEnvVars: {str:str} = {}
 

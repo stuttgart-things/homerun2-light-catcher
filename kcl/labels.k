@@ -18,6 +18,7 @@ _httpRouteParentRefName = option("config.httpRouteParentRefName")
 _httpRouteParentRefNamespace = option("config.httpRouteParentRefNamespace")
 _httpRouteHostname = option("config.httpRouteHostname")
 _httpRouteAnnotations = option("config.httpRouteAnnotations") or {}
+_profileData = option("config.profileData")
 _extraEnvVars = option("config.extraEnvVars") or {}
 
 # Config instance with command-line overrides
@@ -48,6 +49,8 @@ config: schema.LightCatcher = schema.LightCatcher {
         httpRouteHostname = _httpRouteHostname
     if _httpRouteAnnotations:
         httpRouteAnnotations = _httpRouteAnnotations
+    if _profileData:
+        profileData = _profileData
     if _extraEnvVars:
         extraEnvVars = _extraEnvVars
 }
