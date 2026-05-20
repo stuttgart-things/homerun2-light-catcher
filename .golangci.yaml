@@ -109,6 +109,24 @@ linters:
           - lll
           - mnd
         path: internal/(dashboard|mock)/.+\.go
+      # goconst surfaces three categories of "duplicates" here that aren't
+      # worth extracting:
+      #   - catcher/* and config/* test files: severity case labels and
+      #     table-driven test fixtures ("ERROR"/"INFO"/"DEBUG", default
+      #     stream "messages"), where inline literals read better than a
+      #     symbolic constant per case row.
+      #   - catcher/handlers.go: the same severity labels in their own
+      #     `case "error", "ERROR":` branches; idiomatic Go case form.
+      #   - config/config.go: the default Redis stream name "messages"
+      #     (single literal, the duplicates are in tests).
+      #   - profile/*: WLED FX names like "Blurz" / "DJ Light" used both
+      #     as map keys (fx → ID) and as fixture values in tests; the
+      #     FX names *are* string identifiers from the WLED protocol —
+      #     symbolic constants would just be `Blurz = "Blurz"`.
+      # Exempt these files from goconst.
+      - linters:
+          - goconst
+        path: internal/(catcher|config|profile)/.+\.go
     paths:
       - third_party$
       - builtin$
