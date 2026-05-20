@@ -1,3 +1,15 @@
+# [0.7.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.6.0...v0.7.0) (2026-05-20)
+
+
+### Bug Fixes
+
+* **deps:** update module charm.land/lipgloss/v2 to v2.0.3 ([#22](https://github.com/stuttgart-things/homerun2-light-catcher/issues/22)) ([06bdebb](https://github.com/stuttgart-things/homerun2-light-catcher/commit/06bdebb7362962c2671e220570f43eea3c28238e))
+
+
+### Features
+
+* PR-preview setup (Option B HTTPRoute + profile CM + 4 workflows) ([#20](https://github.com/stuttgart-things/homerun2-light-catcher/issues/20)) ([9ada80d](https://github.com/stuttgart-things/homerun2-light-catcher/commit/9ada80dcb709df7e01675f3b4998094e5aaf865b)), closes [stuttgart-things/homerun2-omni-pitcher#116](https://github.com/stuttgart-things/homerun2-omni-pitcher/issues/116) [stuttgart-things/argocd#116](https://github.com/stuttgart-things/argocd/issues/116) [#16](https://github.com/stuttgart-things/homerun2-light-catcher/issues/16)
+
 # [0.6.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.5.0...v0.6.0) (2026-04-15)
 
 
