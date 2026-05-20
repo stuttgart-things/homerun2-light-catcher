@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.0...v0.7.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **deps:** update module charm.land/bubbletea/v2 to v2.0.6 ([#18](https://github.com/stuttgart-things/homerun2-light-catcher/issues/18)) ([573d65b](https://github.com/stuttgart-things/homerun2-light-catcher/commit/573d65b4d62cebddbdf7024d391f8d4cf5e87f3a))
+
 # [0.7.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.6.0...v0.7.0) (2026-05-20)
 
 
