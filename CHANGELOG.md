@@ -1,3 +1,10 @@
+## [0.7.2](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.1...v0.7.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/redis/go-redis/v9 to v9.19.0 ([#25](https://github.com/stuttgart-things/homerun2-light-catcher/issues/25)) ([13afce1](https://github.com/stuttgart-things/homerun2-light-catcher/commit/13afce15df9bb3027951eec2f58f6f8e1a316fe8))
+
 ## [0.7.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.0...v0.7.1) (2026-05-20)
 
 
