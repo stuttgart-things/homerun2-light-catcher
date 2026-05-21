@@ -58,39 +58,15 @@ schema LightCatcher:
     profileData: str = """\
 ---
 effects:
-  error-git:
+  error:
     systems:
-      - gitlab
-      - github
+      - "*"
     severity:
-      - ERROR
+      - error
+      - critical
     fx: Blurz
     duration: 3
     color: sunset
-    segments:
-      - 0
-    endpoint: http://homerun2-wled-mock
-
-  info:
-    systems:
-      - "*"
-    severity:
-      - INFO
-    fx: DJ Light
-    duration: 3
-    color: ocean
-    segments:
-      - 0
-    endpoint: http://homerun2-wled-mock
-
-  success:
-    systems:
-      - "*"
-    severity:
-      - SUCCESS
-    fx: Aurora
-    duration: 3
-    color: forest
     segments:
       - 0
     endpoint: http://homerun2-wled-mock
@@ -99,10 +75,34 @@ effects:
     systems:
       - "*"
     severity:
-      - WARNING
+      - warning
     fx: Twinkle
     duration: 3
     color: beach
+    segments:
+      - 0
+    endpoint: http://homerun2-wled-mock
+
+  success:
+    systems:
+      - "*"
+    severity:
+      - success
+    fx: Aurora
+    duration: 3
+    color: forest
+    segments:
+      - 0
+    endpoint: http://homerun2-wled-mock
+
+  info:
+    systems:
+      - "*"
+    severity:
+      - info
+    fx: DJ Light
+    duration: 3
+    color: ocean
     segments:
       - 0
     endpoint: http://homerun2-wled-mock

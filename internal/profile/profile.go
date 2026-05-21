@@ -3,6 +3,7 @@ package profile
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -108,7 +109,9 @@ func LoadConfiguration(filepath string) (Configuration, error) {
 }
 
 // MatchEffect finds the first effect matching the given system and severity.
-// Systems support wildcard "*" to match any system.
+// Systems support wildcard "*" to match any system. Severity is matched
+// case-insensitively — homerun2 producers emit lowercase severities while
+// profiles are often authored in uppercase.
 func MatchEffect(config Configuration, system, severity string) (Effect, bool) {
 	for _, effect := range config.Effects {
 		systemMatch := false
@@ -121,7 +124,7 @@ func MatchEffect(config Configuration, system, severity string) (Effect, bool) {
 
 		severityMatch := false
 		for _, sev := range effect.Severity {
-			if sev == severity {
+			if strings.EqualFold(sev, severity) {
 				severityMatch = true
 				break
 			}
