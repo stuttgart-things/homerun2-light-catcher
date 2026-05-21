@@ -123,6 +123,20 @@ func TestMatchEffect_NoMatch(t *testing.T) {
 	}
 }
 
+func TestMatchEffect_SeverityCaseInsensitive(t *testing.T) {
+	path := writeTestProfile(t)
+	config, _ := LoadConfiguration(path)
+
+	// Profile authored as "INFO"; producers emit lowercase "info".
+	effect, found := MatchEffect(config, "some-system", "info")
+	if !found {
+		t.Fatal("expected case-insensitive match for info → INFO")
+	}
+	if effect.Fx != "DJ Light" {
+		t.Errorf("expected DJ Light, got %s", effect.Fx)
+	}
+}
+
 func TestGetColor_Palette(t *testing.T) {
 	colors, err := GetColor("sunset")
 	if err != nil {
