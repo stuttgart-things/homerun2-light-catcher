@@ -1,3 +1,10 @@
+## [0.7.3](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.2...v0.7.3) (2026-05-21)
+
+
+### Bug Fixes
+
+* match severities case-insensitively + fix bundled profile ([0fbef1f](https://github.com/stuttgart-things/homerun2-light-catcher/commit/0fbef1ff55b9d7b36eb0ae986a96b12bfd7add4e)), closes [#27](https://github.com/stuttgart-things/homerun2-light-catcher/issues/27)
+
 ## [0.7.2](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.1...v0.7.2) (2026-05-21)
 
 
