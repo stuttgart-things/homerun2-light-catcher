@@ -73,7 +73,7 @@ jobs:
 
       - name: Push WLED mock kustomize base
         if: steps.version.outputs.new_release == 'true'
-        uses: dagger/dagger-for-github@v8.4.0
+        uses: dagger/dagger-for-github@v8.4.1
         with:
           module: github.com/stuttgart-things/dagger/kcl@v0.82.1
           call: >-
