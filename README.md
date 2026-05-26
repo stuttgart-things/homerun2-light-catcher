@@ -302,6 +302,7 @@ config.healthPort: "8080"
 - [Flux App](https://github.com/stuttgart-things/flux/tree/main/apps/homerun2) (Kubernetes deployment)
 - [homerun2-omni-pitcher](https://github.com/stuttgart-things/homerun2-omni-pitcher) (producer)
 - [homerun2-core-catcher](https://github.com/stuttgart-things/homerun2-core-catcher) (sibling consumer)
+- [homerun2-notification-catcher](https://github.com/stuttgart-things/homerun2-notification-catcher) (MS Teams / webhook consumer)
 - [homerun-library](https://github.com/stuttgart-things/homerun-library) (shared library)
 - [WLED Project](https://kno.wled.ge/)
 
