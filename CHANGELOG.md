@@ -1,3 +1,10 @@
+## [0.7.4](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.3...v0.7.4) (2026-05-28)
+
+
+### Bug Fixes
+
+* **kcl:** stop emitting Namespace from kustomize OCI ([acfe976](https://github.com/stuttgart-things/homerun2-light-catcher/commit/acfe9763e26263c322a0aa6c24809641d7591f1e)), closes [#36](https://github.com/stuttgart-things/homerun2-light-catcher/issues/36)
+
 ## [0.7.3](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.2...v0.7.3) (2026-05-21)
 
 
