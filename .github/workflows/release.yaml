@@ -54,7 +54,7 @@ jobs:
 
       - name: Set up Ko
         if: steps.version.outputs.new_release == 'true'
-        uses: ko-build/setup-ko@v0.9
+        uses: ko-build/setup-ko@v0.10
 
       - name: Login to GHCR
         if: steps.version.outputs.new_release == 'true'
