@@ -254,7 +254,7 @@ task build-scan-image-ko
 <details>
 <summary><b>Render manifests</b></summary>
 
-The `kcl/` directory contains KCL modules that generate Kubernetes manifests (Namespace, ServiceAccount, ConfigMap, Secret, Deployment, Service, HTTPRoute).
+The `kcl/` directory contains KCL modules that generate Kubernetes manifests (ServiceAccount, ConfigMap, Secret, Deployment, Service, HTTPRoute). No `Namespace` is emitted — the consuming Argo CD Application creates it via `CreateNamespace=true`.
 
 ```bash
 # Render manifests (non-interactive, uses defaults)
