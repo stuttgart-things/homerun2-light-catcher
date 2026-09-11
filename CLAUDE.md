@@ -93,6 +93,7 @@ Redis Stream ──► RedisCatcher ──┬──► LogHandler (structured sl
 | `REDIS_STREAM` | `messages` | Redis stream to consume |
 | `CONSUMER_GROUP` | `homerun2-light-catcher` | Consumer group name |
 | `CONSUMER_NAME` | hostname | Consumer name |
+| `MAX_MESSAGE_AGE` | `60s` | Skip the light for messages pitched longer ago (measured from the stream entry ID; `0` disables) |
 | `CONSUMER_START_ID` | `$` | Start position of a newly created consumer group (`$`, `0`, or a stream ID) |
 | `PROFILE_PATH` | `profile.yaml` | Path to WLED effect profile YAML |
 | `HEALTH_PORT` | `8080` | Health endpoint port |

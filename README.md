@@ -21,6 +21,12 @@ A light effect is a signal about *now*, so the light-catcher never replays a str
 - **New consumer group** (first start, a new instance, a newly added stream, or after the group was deleted): the group is created at `$` and only messages pitched **after** it exists are handled. Set `CONSUMER_START_ID=0` to replay the whole stream instead, or a stream ID to start after that entry.
 - **Existing consumer group** (a restart): the group keeps its position, so messages pitched while the catcher was down are still delivered. `CONSUMER_START_ID` has no effect on an existing group.
 
+### How old a message may be
+
+A message only triggers a light if it was pitched to the stream at most `MAX_MESSAGE_AGE` ago (default `60s`, long enough to survive a pod restart). Older messages are still caught and logged, but skipped by the light handler with a `message pitched too long ago` warning. This drops the backlog after a longer outage, even though the existing group delivers it.
+
+The age is measured from the **stream entry** (Redis stores the time a message was added in its ID), not from the message's `timestamp` field. Producers fill that field with the time the *event* happened, in different formats. git-pitcher, for example, uses the GitHub event's creation time, minutes before it polls and pitches the event. A missing or unparseable `timestamp` therefore has no effect on the check. Set `MAX_MESSAGE_AGE=0` to disable it.
+
 Messages are handled **one at a time, in stream order**, up to and including the WLED call. A burst (e.g. a point and the match-winning point pitched milliseconds apart) reaches the light in the order it happened. A WLED device can only show one effect at a time, so nothing is gained by handling messages concurrently. One slow or unreachable device does delay the messages behind it, up to the 10 s HTTP timeout per message.
 
 ### Effect Profile
@@ -246,6 +252,7 @@ tests/                     # Test data (profiles, deploy config)
 | `REDIS_STREAM` | Redis stream to consume from | `messages` |
 | `CONSUMER_GROUP` | Consumer group name | `homerun2-light-catcher` |
 | `CONSUMER_NAME` | Consumer name within the group | hostname |
+| `MAX_MESSAGE_AGE` | Skip the light for messages pitched longer ago than this (Go duration, e.g. `60s`, `2m`); `0` disables the check | `60s` |
 | `CONSUMER_START_ID` | Where a **newly created** consumer group starts: `$` (only new messages), `0` (whole stream), or a stream ID. Ignored for an existing group | `$` |
 | `PROFILE_PATH` | Path to WLED effect profile YAML | `profile.yaml` |
 | `HEALTH_PORT` | Health endpoint port | `8080` |
