@@ -78,8 +78,9 @@ func main() {
 	streams := config.LoadStreams()
 	consumerGroup := homerun.GetEnv("CONSUMER_GROUP", "homerun2-light-catcher")
 	consumerName := homerun.GetEnv("CONSUMER_NAME", "")
+	consumerStartID := homerun.GetEnv("CONSUMER_START_ID", catcher.DefaultStartID)
 
-	c, err := catcher.NewRedisCatcher(redisConfig, streams, consumerGroup, consumerName, msgHandlers...)
+	c, err := catcher.NewRedisCatcher(redisConfig, streams, consumerGroup, consumerName, consumerStartID, msgHandlers...)
 	if err != nil {
 		slog.Error("failed to create catcher", "error", err)
 		os.Exit(1)
@@ -90,6 +91,7 @@ func main() {
 		"redis_port", redisConfig.Port,
 		"streams", streams,
 		"consumer_group", consumerGroup,
+		"consumer_start_id", consumerStartID,
 		"profile_path", profilePath,
 	)
 
