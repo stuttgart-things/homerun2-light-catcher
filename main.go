@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -83,7 +84,10 @@ func main() {
 	consumerName := homerun.GetEnv("CONSUMER_NAME", "")
 	consumerStartID := homerun.GetEnv("CONSUMER_START_ID", catcher.DefaultStartID)
 
-	waitForRedis(redisConfig)
+	// Canceled on SIGINT/SIGTERM: stops the Redis wait, then the catcher.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	waitForRedis(ctx, redisConfig)
 
 	c, err := catcher.NewRedisCatcher(redisConfig, streams, consumerGroup, consumerName, consumerStartID, msgHandlers...)
 	if err != nil {
@@ -101,10 +105,6 @@ func main() {
 		"max_message_age", maxMessageAge.String(),
 	)
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
 	if errCh := c.Errors(); errCh != nil {
 		go func() {
 			for err := range errCh {
@@ -113,14 +113,16 @@ func main() {
 		}()
 	}
 
+	// Graceful shutdown
 	go func() {
-		<-quit
+		<-ctx.Done()
 		slog.Info("shutting down catcher")
 		c.Shutdown()
 	}()
 
 	slog.Info("catcher running, waiting for messages...")
 	c.Run()
+	stop()
 
 	slog.Info("catcher exited gracefully")
 }
@@ -138,9 +140,14 @@ func mustLoadDuration(load func() (time.Duration, error)) time.Duration {
 // waitForRedis blocks until Redis answers, or exits after
 // REDIS_STARTUP_TIMEOUT. The consumer's preflight dials Redis exactly once, so
 // without this a Redis that is still starting makes the catcher exit (#59).
-func waitForRedis(rc homerun.RedisConfig) {
+// A shutdown signal during the wait ends it at once, with exit code 0 (#63).
+func waitForRedis(ctx context.Context, rc homerun.RedisConfig) {
 	timeout := mustLoadDuration(homerun.LoadRedisStartupTimeout)
-	if err := homerun.WaitForRedis(rc, timeout); err != nil {
+	if err := homerun.WaitForRedisContext(ctx, rc, timeout); err != nil {
+		if ctx.Err() != nil {
+			slog.Info("shutdown requested while waiting for redis")
+			os.Exit(0)
+		}
 		slog.Error("redis not reachable",
 			"error", err,
 			"addr", rc.Addr,
