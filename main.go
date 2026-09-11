@@ -139,8 +139,8 @@ func mustLoadDuration(load func() (time.Duration, error)) time.Duration {
 // REDIS_STARTUP_TIMEOUT. The consumer's preflight dials Redis exactly once, so
 // without this a Redis that is still starting makes the catcher exit (#59).
 func waitForRedis(rc homerun.RedisConfig) {
-	timeout := mustLoadDuration(config.LoadRedisStartupTimeout)
-	if err := catcher.WaitForRedis(rc, timeout); err != nil {
+	timeout := mustLoadDuration(homerun.LoadRedisStartupTimeout)
+	if err := homerun.WaitForRedis(rc, timeout); err != nil {
 		slog.Error("redis not reachable",
 			"error", err,
 			"addr", rc.Addr,

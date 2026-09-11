@@ -51,34 +51,6 @@ func ParseStreams(streamsEnv, streamFallback string) []string {
 	return []string{"messages"}
 }
 
-// DefaultRedisStartupTimeout is how long startup waits for Redis to answer.
-// A freshly installed redis-stack took ~70s on labda-dev-a (2026-09-10).
-const DefaultRedisStartupTimeout = 120 * time.Second
-
-// LoadRedisStartupTimeout reads REDIS_STARTUP_TIMEOUT (a Go duration, e.g.
-// "90s" or "2m"). Unset means DefaultRedisStartupTimeout.
-func LoadRedisStartupTimeout() (time.Duration, error) {
-	return ParseRedisStartupTimeout(os.Getenv("REDIS_STARTUP_TIMEOUT"))
-}
-
-// ParseRedisStartupTimeout returns an error for an unparsable or
-// non-positive value rather than falling back: a typo here should fail
-// startup loudly, not quietly restore a budget nobody chose.
-func ParseRedisStartupTimeout(v string) (time.Duration, error) {
-	v = strings.TrimSpace(v)
-	if v == "" {
-		return DefaultRedisStartupTimeout, nil
-	}
-	d, err := time.ParseDuration(v)
-	if err != nil {
-		return 0, fmt.Errorf("REDIS_STARTUP_TIMEOUT %q: %w", v, err)
-	}
-	if d <= 0 {
-		return 0, fmt.Errorf("REDIS_STARTUP_TIMEOUT %q: must be positive", v)
-	}
-	return d, nil
-}
-
 // DefaultMaxMessageAge is how long after being pitched a message still
 // triggers a light: long enough to survive a pod restart, short enough that a
 // backlog from a longer outage is not replayed.
