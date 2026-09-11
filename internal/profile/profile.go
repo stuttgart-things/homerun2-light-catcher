@@ -82,6 +82,8 @@ func ReverseFxMap() map[int]string {
 type Effect struct {
 	Systems  []string `yaml:"systems"`
 	Severity []string `yaml:"severity"`
+	// Tags, if set, must all be present in the message's comma-separated tags.
+	Tags     []string `yaml:"tags"`
 	Fx       string   `yaml:"fx"`
 	Duration int      `yaml:"duration"`
 	Color    string   `yaml:"color"`
@@ -158,13 +160,14 @@ func LoadConfiguration(filepath string) (Configuration, error) {
 	return config, nil
 }
 
-// MatchEffect finds the first effect matching the given system and severity.
-// Effects are evaluated in profile document order and the first match wins, so
-// a specific rule must be declared above a wildcard rule it overlaps with.
-// Systems support wildcard "*" to match any system. Severity is matched
+// MatchEffect finds the first effect matching the given system, severity and
+// tags. Effects are evaluated in profile document order and the first match
+// wins, so a specific rule must be declared above a wildcard rule it overlaps
+// with. Systems support wildcard "*" to match any system. Severity is matched
 // case-insensitively — homerun2 producers emit lowercase severities while
-// profiles are often authored in uppercase.
-func MatchEffect(config Configuration, system, severity string) (Effect, bool) {
+// profiles are often authored in uppercase. An effect with tags only matches
+// if every one of them is present in the message's tags (see TagsMatch).
+func MatchEffect(config Configuration, system, severity, tags string) (Effect, bool) {
 	for _, name := range config.Names() {
 		effect := config.Effects[name]
 		systemMatch := false
@@ -183,11 +186,35 @@ func MatchEffect(config Configuration, system, severity string) (Effect, bool) {
 			}
 		}
 
-		if systemMatch && severityMatch {
+		if systemMatch && severityMatch && TagsMatch(effect.Tags, tags) {
 			return effect, true
 		}
 	}
 	return Effect{}, false
+}
+
+// TagsMatch reports whether every required tag equals one whole element of the
+// comma-separated message tags: "side=a" matches "set=2,side=a" but not
+// "side=ab". Surrounding whitespace is ignored; comparison is case-sensitive.
+// No required tags always matches.
+func TagsMatch(required []string, messageTags string) bool {
+	if len(required) == 0 {
+		return true
+	}
+
+	present := make(map[string]bool)
+	for _, tag := range strings.Split(messageTags, ",") {
+		if tag = strings.TrimSpace(tag); tag != "" {
+			present[tag] = true
+		}
+	}
+
+	for _, tag := range required {
+		if !present[strings.TrimSpace(tag)] {
+			return false
+		}
+	}
+	return true
 }
 
 // GetColor resolves a color name to RGB values. Supports palette names and single colors.

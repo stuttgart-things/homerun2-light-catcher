@@ -3,6 +3,7 @@ package dashboard
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"strings"
 )
@@ -118,6 +119,8 @@ func (h *Handler) generateHTML() string {
   .event-severity.info { color: #60a5fa; }
   .event-system { color: #818cf8; min-width: 100px; }
   .event-effect { color: #e2e8f0; }
+  .event-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+  .event-tag { font-family: 'Courier New', monospace; font-size: 11px; color: #fbbf24; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); border-radius: 4px; padding: 1px 6px; }
   .event-off { color: #64748b; font-style: italic; }
   .empty-state { text-align: center; color: #64748b; padding: 40px; font-size: 14px; }
   .build-footer { background: #0f172a; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
@@ -160,6 +163,13 @@ func (h *Handler) generateHTML() string {
 				fmt.Fprintf(&sb, `<span class="event-severity %s">%s</span>`, cls, ev.Severity)
 				fmt.Fprintf(&sb, `<span class="event-system">%s</span>`, ev.System)
 				fmt.Fprintf(&sb, `<span class="event-effect">%s / %s</span>`, ev.Effect, ev.Color)
+				if len(ev.Tags) > 0 {
+					sb.WriteString(`<span class="event-tags" title="matched tags">`)
+					for _, tag := range ev.Tags {
+						fmt.Fprintf(&sb, `<span class="event-tag">%s</span>`, html.EscapeString(tag))
+					}
+					sb.WriteString(`</span>`)
+				}
 			} else {
 				sb.WriteString(`<span class="event-dot off"></span>`)
 				fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, ev.Timestamp)
@@ -171,6 +181,11 @@ func (h *Handler) generateHTML() string {
 
 	sb.WriteString(`</div></div></div>
 <script>
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+  });
+}
 function updateDashboard() {
   fetch('/api/events')
     .then(function(r) { return r.json(); })
@@ -194,6 +209,13 @@ function updateDashboard() {
           html += '<span class="event-severity ' + cls + '">' + sev + '</span>';
           html += '<span class="event-system">' + (ev.system || '') + '</span>';
           html += '<span class="event-effect">' + (ev.effect || '') + ' / ' + (ev.color || '') + '</span>';
+          if (ev.tags && ev.tags.length) {
+            html += '<span class="event-tags" title="matched tags">';
+            for (var t = 0; t < ev.tags.length; t++) {
+              html += '<span class="event-tag">' + esc(ev.tags[t]) + '</span>';
+            }
+            html += '</span>';
+          }
         } else {
           html += '<span class="event-dot off"></span>';
           html += '<span class="event-time">' + ev.timestamp + '</span>';

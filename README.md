@@ -16,7 +16,7 @@ omni-pitcher → Redis Stream → light-catcher → profile match → WLED devic
 
 ### Effect Profile
 
-Effects are configured in a YAML file mapping `(system, severity)` combinations to WLED effects:
+Effects are configured in a YAML file mapping `(system, severity)` combinations — optionally narrowed by message `tags` — to WLED effects:
 
 ```yaml
 effects:
@@ -41,6 +41,41 @@ effects:
 
 When an effect has a `duration`, the light is turned off after that many seconds — unless a newer effect has been sent to the same endpoint in the meantime. The newer effect's own `duration` then decides when the light goes off.
 
+### Matching on tags
+
+A rule can also require message tags. `tags` is optional; a rule without it matches on `systems` and `severity` alone, exactly as before.
+
+```yaml
+effects:
+  tabletennis-match:
+    systems: [tabletennis]
+    severity: [success]
+    tags: [transition=match_won]
+    fx: Fireworks
+    duration: 10
+    color: forest
+  tabletennis-point-a:
+    systems: [tabletennis]
+    severity: [info]
+    tags: [transition=point, side=a]
+    fx: Solid
+    duration: 1
+    color: blue
+  info:                   # declared after the tag rules, catches the rest
+    systems: ["*"]
+    severity: [info]
+    fx: DJ Light
+    color: ocean
+```
+
+- **All listed tags must be present (AND).** `[transition=point, side=a]` matches only messages carrying both.
+- **Each entry matches one whole element** of the message's comma-separated `tags` field — `side=a` matches `match=36c17b30,set=2,transition=point,side=a` but not `side=ab`. Whitespace around elements is ignored; the comparison is case-sensitive.
+- Declare tag rules **above** the wildcard rules they overlap with (first match wins).
+
+> **Not the same as the notification-catcher.** homerun2-notification-catcher's `tags_contain` is a *substring* match that *ORs* the entries in its list. Here, entries are *whole elements* and *all* of them must match. Don't copy the rule shape between the two catchers unchanged.
+
+Both dashboards show the tags a triggered rule matched on in their event timeline.
+
 Available effects: Solid, Blink, Breathe, Wipe, Scan, Twinkle, Fireworks, Rainbow, Candle, Chase, Dynamic, Chase Rainbow, Aurora, Blurz, DJ Light
 
 Color palettes: `sunset`, `beach`, `forest`, `ocean` — or single colors: `red`, `yellow`, `green`, `blue`, `white`
@@ -51,7 +86,7 @@ Both the light-catcher and the WLED mock serve dashboards with the HOMERUN² des
 
 | Dashboard | URL | Shows |
 |-----------|-----|-------|
-| **Light Catcher** | `http://localhost:8080/` | Light event timeline with severity, system, effect, color |
+| **Light Catcher** | `http://localhost:8080/` | Light event timeline with severity, system, effect, color, matched tags |
 | **WLED Mock** | `http://localhost:9090/` (embedded) or `http://localhost:8080/` (standalone) | WLED state, segments, colors, event timeline with trigger context |
 
 The light-catcher dashboard shows events as they are triggered. The mock dashboard shows what the WLED device receives, including severity/system/effect metadata from the light-catcher.

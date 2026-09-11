@@ -25,6 +25,7 @@ effects:
 |-------|-------------|
 | `systems` | List of source systems to match (e.g., `github`, `gitlab`). Use `"*"` for all. |
 | `severity` | List of severity levels to match (e.g., `ERROR`, `WARNING`, `INFO`, `SUCCESS`). |
+| `tags` | *Optional.* Tags that must **all** be present in the message's comma-separated `tags` field, each matching one whole element (e.g., `[transition=point, side=a]`). See [Matching on tags](#matching-on-tags). |
 | `fx` | WLED effect name (e.g., `Blurz`, `DJ Light`, `Aurora`, `Twinkle`). |
 | `duration` | How long the effect runs in seconds before turning off. |
 | `color` | Color palette name (e.g., `sunset`, `ocean`, `forest`, `beach`). |
@@ -89,9 +90,9 @@ effects:
 
 When a message arrives from a Redis Stream, the LightHandler:
 
-1. Extracts `system` and `severity` from the message payload
+1. Extracts `system`, `severity` and `tags` from the message payload
 2. Iterates through the profile effects **in the order they appear in the file**
-3. Selects the first effect where the system matches (or `"*"`) and severity matches (case-insensitive)
+3. Selects the first effect where the system matches (or `"*"`), severity matches (case-insensitive) and — if the effect lists `tags` — every listed tag is present
 4. Sends the corresponding WLED effect via HTTP API
 5. Waits for the configured duration, then turns the effect off — unless a newer effect has been sent to the same endpoint since
 
@@ -123,6 +124,41 @@ Each effect with a `duration` schedules a turn-off. A turn-off is skipped if a n
 | 2s | match won, `duration: 10` | celebration starts |
 | 3s | the point's timer fires | skipped — celebration keeps running |
 | 12s | the celebration's timer fires | off |
+
+### Matching on tags
+
+A rule can also require message tags. `tags` is optional; a rule without it matches on `systems` and `severity` alone, exactly as before.
+
+```yaml
+effects:
+  tabletennis-match:
+    systems: [tabletennis]
+    severity: [success]
+    tags: [transition=match_won]
+    fx: Fireworks
+    duration: 10
+    color: forest
+  tabletennis-point-a:
+    systems: [tabletennis]
+    severity: [info]
+    tags: [transition=point, side=a]
+    fx: Solid
+    duration: 1
+    color: blue
+  info:                   # declared after the tag rules, catches the rest
+    systems: ["*"]
+    severity: [info]
+    fx: DJ Light
+    color: ocean
+```
+
+- **All listed tags must be present (AND).** `[transition=point, side=a]` matches only messages carrying both.
+- **Each entry matches one whole element** of the message's comma-separated `tags` field — `side=a` matches `match=36c17b30,set=2,transition=point,side=a` but not `side=ab`. Whitespace around elements is ignored; the comparison is case-sensitive.
+- Declare tag rules **above** the wildcard rules they overlap with (first match wins).
+
+> **Not the same as the notification-catcher.** homerun2-notification-catcher's `tags_contain` is a *substring* match that *ORs* the entries in its list. Here, entries are *whole elements* and *all* of them must match. Don't copy the rule shape between the two catchers unchanged.
+
+Both dashboards show the tags a triggered rule matched on in their event timeline.
 
 ## WLED Mock
 

@@ -21,6 +21,7 @@ func LogHandler() MessageHandler {
 			"title", msg.Title,
 			"severity", msg.Severity,
 			"system", msg.System,
+			"tags", msg.Tags,
 			"timestamp", msg.Timestamp,
 		)
 	}
@@ -37,7 +38,7 @@ func LightHandler(profilePath string, tracker *dashboard.EventTracker) MessageHa
 			return
 		}
 
-		wled.SendToWLED(profilePath, msg.Severity, msg.System, tracker)
+		wled.SendToWLED(profilePath, msg.Severity, msg.System, msg.Tags, tracker)
 	}
 }
 
