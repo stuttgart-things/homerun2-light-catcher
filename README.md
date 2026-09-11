@@ -37,6 +37,10 @@ effects:
     endpoint: http://wled:8080
 ```
 
+**Rules are evaluated in the order they appear in the profile, and the first match wins.** Put a specific rule above any wildcard rule it overlaps with — a `*` rule declared first shadows everything below it for the same severity. `effects` stays a map keyed by rule name; only its order in the file matters.
+
+When an effect has a `duration`, the light is turned off after that many seconds — unless a newer effect has been sent to the same endpoint in the meantime. The newer effect's own `duration` then decides when the light goes off.
+
 Available effects: Solid, Blink, Breathe, Wipe, Scan, Twinkle, Fireworks, Rainbow, Candle, Chase, Dynamic, Chase Rainbow, Aurora, Blurz, DJ Light
 
 Color palettes: `sunset`, `beach`, `forest`, `ocean` — or single colors: `red`, `yellow`, `green`, `blue`, `white`

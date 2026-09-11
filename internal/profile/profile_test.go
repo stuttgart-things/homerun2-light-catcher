@@ -3,7 +3,10 @@ package profile
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 const testProfileYAML = `---
@@ -183,5 +186,89 @@ func TestReverseFxMap(t *testing.T) {
 	}
 	if rev[14] != "DJ Light" {
 		t.Errorf("expected 14=DJ Light, got %s", rev[14])
+	}
+}
+
+const overlappingProfileYAML = `---
+effects:
+  tabletennis-win:
+    systems: [tabletennis]
+    severity: [success]
+    fx: Fireworks
+  success:
+    systems: ["*"]
+    severity: [success]
+    fx: Aurora
+  zz-late:
+    systems: [tabletennis]
+    severity: [success]
+    fx: Solid
+`
+
+func TestMatchEffect_DocumentOrder(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "profile.yaml")
+	if err := os.WriteFile(path, []byte(overlappingProfileYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Map iteration is randomized per range statement, so repeating the
+	// load+match catches any path that still walks the map.
+	for i := 0; i < 200; i++ {
+		config, err := LoadConfiguration(path)
+		if err != nil {
+			t.Fatalf("LoadConfiguration: %v", err)
+		}
+
+		effect, found := MatchEffect(config, "tabletennis", "success")
+		if !found || effect.Fx != "Fireworks" {
+			t.Fatalf("iteration %d: expected the specific rule declared first (Fireworks), got %q", i, effect.Fx)
+		}
+
+		effect, found = MatchEffect(config, "gitlab", "success")
+		if !found || effect.Fx != "Aurora" {
+			t.Fatalf("iteration %d: expected wildcard rule (Aurora), got %q", i, effect.Fx)
+		}
+	}
+}
+
+func TestMatchEffect_WildcardDeclaredFirstWins(t *testing.T) {
+	var config Configuration
+	yamlDoc := `effects:
+  success:
+    systems: ["*"]
+    severity: [success]
+    fx: Aurora
+  tabletennis-win:
+    systems: [tabletennis]
+    severity: [success]
+    fx: Fireworks
+`
+	if err := yaml.Unmarshal([]byte(yamlDoc), &config); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 200; i++ {
+		effect, _ := MatchEffect(config, "tabletennis", "success")
+		if effect.Fx != "Aurora" {
+			t.Fatalf("iteration %d: first match wins regardless of specificity, expected Aurora, got %q", i, effect.Fx)
+		}
+	}
+}
+
+func TestConfigurationNames(t *testing.T) {
+	path := writeTestProfile(t)
+	config, err := LoadConfiguration(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := config.Names(), []string{"error-git", "info", "success"}; !slices.Equal(got, want) {
+		t.Errorf("Names() = %v, want document order %v", got, want)
+	}
+
+	// A Configuration built in code has no document order; names are sorted.
+	built := Configuration{Effects: map[string]Effect{"b": {}, "a": {}, "c": {}}}
+	if got, want := built.Names(), []string{"a", "b", "c"}; !slices.Equal(got, want) {
+		t.Errorf("Names() = %v, want sorted %v", got, want)
 	}
 }

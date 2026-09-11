@@ -3,6 +3,7 @@ package profile
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -91,6 +92,55 @@ type Effect struct {
 // Configuration represents the top-level profile YAML.
 type Configuration struct {
 	Effects map[string]Effect `yaml:"effects"`
+
+	// order holds the effect names in profile document order.
+	order []string
+}
+
+// UnmarshalYAML decodes the profile and records the document order of the
+// effects mapping, which a Go map alone would lose.
+func (c *Configuration) UnmarshalYAML(value *yaml.Node) error {
+	type plain Configuration
+	if err := value.Decode((*plain)(c)); err != nil {
+		return err
+	}
+
+	c.order = nil
+	if value.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(value.Content); i += 2 {
+		if value.Content[i].Value != "effects" || value.Content[i+1].Kind != yaml.MappingNode {
+			continue
+		}
+		effects := value.Content[i+1].Content
+		for j := 0; j+1 < len(effects); j += 2 {
+			c.order = append(c.order, effects[j].Value)
+		}
+	}
+	return nil
+}
+
+// Names returns the effect names in profile document order. Effects without a
+// recorded position (e.g. a Configuration built in code) follow, sorted by name.
+func (c Configuration) Names() []string {
+	names := make([]string, 0, len(c.Effects))
+	seen := make(map[string]bool, len(c.Effects))
+	for _, name := range c.order {
+		if _, ok := c.Effects[name]; ok && !seen[name] {
+			names = append(names, name)
+			seen[name] = true
+		}
+	}
+
+	var rest []string
+	for name := range c.Effects {
+		if !seen[name] {
+			rest = append(rest, name)
+		}
+	}
+	slices.Sort(rest)
+	return append(names, rest...)
 }
 
 // LoadConfiguration reads and parses a profile YAML file.
@@ -109,11 +159,14 @@ func LoadConfiguration(filepath string) (Configuration, error) {
 }
 
 // MatchEffect finds the first effect matching the given system and severity.
+// Effects are evaluated in profile document order and the first match wins, so
+// a specific rule must be declared above a wildcard rule it overlaps with.
 // Systems support wildcard "*" to match any system. Severity is matched
 // case-insensitively — homerun2 producers emit lowercase severities while
 // profiles are often authored in uppercase.
 func MatchEffect(config Configuration, system, severity string) (Effect, bool) {
-	for _, effect := range config.Effects {
+	for _, name := range config.Names() {
+		effect := config.Effects[name]
 		systemMatch := false
 		for _, s := range effect.Systems {
 			if s == "*" || s == system {

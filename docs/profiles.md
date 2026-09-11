@@ -90,10 +90,39 @@ effects:
 When a message arrives from a Redis Stream, the LightHandler:
 
 1. Extracts `system` and `severity` from the message payload
-2. Iterates through all profile effects
-3. Selects the first effect where the system matches (or `"*"`) and severity matches
+2. Iterates through the profile effects **in the order they appear in the file**
+3. Selects the first effect where the system matches (or `"*"`) and severity matches (case-insensitive)
 4. Sends the corresponding WLED effect via HTTP API
-5. Waits for the configured duration, then turns the effect off
+5. Waits for the configured duration, then turns the effect off — unless a newer effect has been sent to the same endpoint since
+
+### First match wins
+
+Because the first matching rule wins, declare specific rules above wildcard rules they overlap with:
+
+```yaml
+effects:
+  tabletennis-win:        # checked first
+    systems: [tabletennis]
+    severity: [success]
+    fx: Fireworks
+  success:                # only reached for systems other than tabletennis
+    systems: ["*"]
+    severity: [success]
+    fx: Aurora
+```
+
+Swapping the two entries makes `success` match every system, including `tabletennis`, so `tabletennis-win` would never be selected.
+
+### Overlapping effects on one endpoint
+
+Each effect with a `duration` schedules a turn-off. A turn-off is skipped if a newer effect was sent to the same endpoint after the one that scheduled it, so a short effect followed by a longer one does not cut the longer one short:
+
+| t | event | light |
+|---|-------|-------|
+| 0s | point, `duration: 3` | flash starts |
+| 2s | match won, `duration: 10` | celebration starts |
+| 3s | the point's timer fires | skipped — celebration keeps running |
+| 12s | the celebration's timer fires | off |
 
 ## WLED Mock
 
