@@ -3,7 +3,7 @@ module github.com/stuttgart-things/homerun2-light-catcher
 go 1.26.6
 
 require (
-	charm.land/bubbletea/v2 v2.0.6
+	charm.land/bubbletea/v2 v2.0.9
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/stuttgart-things/homerun-library/v4 v4.0.0
