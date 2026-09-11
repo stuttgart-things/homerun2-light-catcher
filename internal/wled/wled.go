@@ -46,16 +46,17 @@ func deviceFor(endpoint string) *device {
 }
 
 // SendToWLED loads the profile, matches an effect, and sends it to the WLED device.
-func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTracker) {
+// tags is the message's comma-separated tags field.
+func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.EventTracker) {
 	config, err := profile.LoadConfiguration(profilePath)
 	if err != nil {
 		slog.Error("failed to load profile", "error", err)
 		return
 	}
 
-	effect, found := profile.MatchEffect(config, system, severity)
+	effect, found := profile.MatchEffect(config, system, severity, tags)
 	if !found {
-		slog.Warn("no matching effect", "system", system, "severity", severity)
+		slog.Warn("no matching effect", "system", system, "severity", severity, "tags", tags)
 		return
 	}
 
@@ -71,7 +72,7 @@ func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTr
 		return
 	}
 
-	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color}
+	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color, Tags: effect.Tags}
 	dev := deviceFor(effect.Endpoint)
 	dev.mu.Lock()
 	if err := SendEffect(effect.Endpoint, fx, colors, meta); err != nil {
@@ -90,10 +91,11 @@ func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTr
 		"duration", effect.Duration,
 		"system", system,
 		"severity", severity,
+		"matched_tags", effect.Tags,
 	)
 
 	if tracker != nil {
-		tracker.Record(severity, system, effect.Fx, effect.Color, effect.Endpoint)
+		tracker.Record(severity, system, effect.Fx, effect.Color, effect.Endpoint, effect.Tags)
 	}
 
 	if effect.Duration > 0 {
@@ -132,6 +134,8 @@ type EffectMeta struct {
 	System   string
 	Effect   string
 	Color    string
+	// Tags are the rule tags the message matched on.
+	Tags []string
 }
 
 // SendEffect sends an effect payload to the WLED JSON API.
@@ -150,6 +154,9 @@ func SendEffect(endpoint string, fx int, colors [][3]int, meta EffectMeta) error
 		"_system":   meta.System,
 		"_effect":   meta.Effect,
 		"_color":    meta.Color,
+	}
+	if len(meta.Tags) > 0 {
+		payload["_tags"] = meta.Tags
 	}
 
 	return postState(endpoint, payload)

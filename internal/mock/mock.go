@@ -32,22 +32,24 @@ type Segment struct {
 
 // Event represents a state change event.
 type Event struct {
-	Timestamp string `json:"timestamp"`
-	Action    string `json:"action"`
-	On        bool   `json:"on"`
-	Summary   string `json:"summary"`
-	Severity  string `json:"severity,omitempty"`
-	System    string `json:"system,omitempty"`
-	Effect    string `json:"effect,omitempty"`
-	Color     string `json:"color,omitempty"`
+	Timestamp string   `json:"timestamp"`
+	Action    string   `json:"action"`
+	On        bool     `json:"on"`
+	Summary   string   `json:"summary"`
+	Severity  string   `json:"severity,omitempty"`
+	System    string   `json:"system,omitempty"`
+	Effect    string   `json:"effect,omitempty"`
+	Color     string   `json:"color,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
 }
 
 // eventMeta holds metadata from the light-catcher payload.
 type eventMeta struct {
-	Severity string `json:"_severity"`
-	System   string `json:"_system"`
-	Effect   string `json:"_effect"`
-	Color    string `json:"_color"`
+	Severity string   `json:"_severity"`
+	System   string   `json:"_system"`
+	Effect   string   `json:"_effect"`
+	Color    string   `json:"_color"`
+	Tags     []string `json:"_tags"`
 }
 
 // Server is the WLED mock server.
@@ -108,6 +110,7 @@ func (s *Server) addEvent(action string, state WLEDState, meta *eventMeta) {
 		ev.System = meta.System
 		ev.Effect = meta.Effect
 		ev.Color = meta.Color
+		ev.Tags = meta.Tags
 	}
 	s.eventBuffer[s.eventCount%50] = ev
 	s.eventCount++
@@ -487,6 +490,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
   .sev-info { background: rgba(96,165,250,0.2); color: #60a5fa; }
   .event-meta { color: #818cf8; min-width: 80px; }
   .event-meta-effect { color: #e2e8f0; }
+  .event-tag { font-size: 11px; color: #fbbf24; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); border-radius: 4px; padding: 1px 6px; }
   .build-footer { background: #1e293b; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
   .build-footer .label { color: #64748b; }
   .build-footer .value { color: #818cf8; }
@@ -543,6 +547,12 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
 <script>
 var fxNames = %s;
 
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+  });
+}
+
 function updateDashboard() {
   fetch('/json/state/events')
     .then(function(r) { return r.json(); })
@@ -593,6 +603,11 @@ function updateDashboard() {
           tlHtml += '<span class="event-badge ' + sevCls + '">' + ev.severity.toUpperCase() + '</span>';
           tlHtml += '<span class="event-meta">' + ev.system + '</span>';
           tlHtml += '<span class="event-meta-effect">' + ev.effect + ' / ' + ev.color + '</span>';
+          if (ev.tags) {
+            for (var t = 0; t < ev.tags.length; t++) {
+              tlHtml += '<span class="event-tag">' + esc(ev.tags[t]) + '</span>';
+            }
+          }
         } else {
           tlHtml += '<span class="event-summary">' + ev.summary + '</span>';
         }

@@ -14,6 +14,8 @@ type LightEvent struct {
 	Color     string `json:"color"`
 	Endpoint  string `json:"endpoint"`
 	On        bool   `json:"on"`
+	// Tags are the rule tags the message matched on.
+	Tags []string `json:"tags,omitempty"`
 }
 
 // EventTracker records recent light events in a ring buffer.
@@ -28,8 +30,8 @@ func NewEventTracker() *EventTracker {
 	return &EventTracker{}
 }
 
-// Record adds a light event.
-func (t *EventTracker) Record(severity, system, effect, color, endpoint string) {
+// Record adds a light event. tags are the rule tags the message matched on.
+func (t *EventTracker) Record(severity, system, effect, color, endpoint string, tags []string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.events[t.count%100] = LightEvent{
@@ -40,6 +42,7 @@ func (t *EventTracker) Record(severity, system, effect, color, endpoint string) 
 		Color:     color,
 		Endpoint:  endpoint,
 		On:        true,
+		Tags:      tags,
 	}
 	t.count++
 }
