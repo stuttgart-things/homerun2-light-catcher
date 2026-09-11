@@ -348,7 +348,9 @@ func TestRedisCatcher_BacklogFromLongOutageIsNotLit(t *testing.T) {
 
 	rec := &recorder{}
 	tracker := dashboard.NewEventTracker()
-	f.startCatcher(t, "", rec.handle, LightHandler(profilePath, time.Minute, tracker))
+	// The recorder runs last, so once it has seen a message the light handler
+	// is done with it.
+	f.startCatcher(t, "", LightHandler(profilePath, time.Minute, tracker), rec.handle)
 	f.pitch(t, "live", homerun.Message{System: testStream, Severity: "info"})
 
 	if ids := rec.waitFor(t, 2); !slices.Equal(ids, []string{"during-outage", "live"}) {
