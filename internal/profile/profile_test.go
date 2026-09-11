@@ -212,7 +212,7 @@ func TestMatchEffect_DocumentOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Map iteration is randomised per range statement, so repeating the
+	// Map iteration is randomized per range statement, so repeating the
 	// load+match catches any path that still walks the map.
 	for i := 0; i < 200; i++ {
 		config, err := LoadConfiguration(path)

@@ -22,7 +22,7 @@ var durationUnit = time.Second
 
 // device tracks the effects sent to one WLED endpoint.
 type device struct {
-	// mu serialises effect and turn-off requests to the endpoint, so a
+	// mu serializes effect and turn-off requests to the endpoint, so a
 	// turn-off cannot interleave with a newer effect being sent.
 	mu sync.Mutex
 	// generation is bumped on every effect sent successfully.
