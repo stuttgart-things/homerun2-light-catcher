@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.0...v1.1.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* start new consumer groups at $ and handle messages in stream order ([#56](https://github.com/stuttgart-things/homerun2-light-catcher/issues/56)) ([6262f87](https://github.com/stuttgart-things/homerun2-light-catcher/commit/6262f87211e6c647050a85833ad57270a3032da8)), closes [#55](https://github.com/stuttgart-things/homerun2-light-catcher/issues/55)
+
 # [1.1.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.0.2...v1.1.0) (2026-09-11)
 
 
