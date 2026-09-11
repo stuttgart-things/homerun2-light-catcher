@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.0.0...v1.0.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **deps:** update module charm.land/lipgloss/v2 to v2.0.6 ([#40](https://github.com/stuttgart-things/homerun2-light-catcher/issues/40)) ([6cb73cf](https://github.com/stuttgart-things/homerun2-light-catcher/commit/6cb73cf532e5625bb953c9fa222ba9fbb8d2a547))
+* **kcl:** stop emitting Namespace from the wled-mock kustomize OCI ([#52](https://github.com/stuttgart-things/homerun2-light-catcher/issues/52)) ([b22174d](https://github.com/stuttgart-things/homerun2-light-catcher/commit/b22174d99d915d4722d2164333ea673a3a6b9b9b)), closes [#36](https://github.com/stuttgart-things/homerun2-light-catcher/issues/36) [#35](https://github.com/stuttgart-things/homerun2-light-catcher/issues/35)
+
 # [1.0.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v0.7.4...v1.0.0) (2026-08-20)
 
 
