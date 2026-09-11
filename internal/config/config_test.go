@@ -3,6 +3,7 @@ package config
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestParseStreams(t *testing.T) {
@@ -27,5 +28,33 @@ func TestParseStreams(t *testing.T) {
 				t.Errorf("ParseStreams(%q, %q) = %v, want %v", tc.streamsEnv, tc.streamFall, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestParseMaxMessageAge(t *testing.T) {
+	cases := []struct {
+		value   string
+		want    time.Duration
+		wantErr bool
+	}{
+		{"", DefaultMaxMessageAge, false},
+		{"  ", DefaultMaxMessageAge, false},
+		{"60s", time.Minute, false},
+		{"2m", 2 * time.Minute, false},
+		{"1500ms", 1500 * time.Millisecond, false},
+		{"0", 0, false},
+		{"60", 0, true},
+		{"soon", 0, true},
+		{"-5s", 0, true},
+	}
+	for _, tc := range cases {
+		got, err := ParseMaxMessageAge(tc.value)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("ParseMaxMessageAge(%q) error = %v, wantErr %v", tc.value, err, tc.wantErr)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseMaxMessageAge(%q) = %v, want %v", tc.value, got, tc.want)
+		}
 	}
 }

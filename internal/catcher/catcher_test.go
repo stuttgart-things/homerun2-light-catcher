@@ -287,7 +287,7 @@ func TestRedisCatcher_BurstEndsOnLastEffect(t *testing.T) {
 			time.Sleep(20 * time.Millisecond)
 		}
 	}
-	f.startCatcher(t, "", slowPoint, LightHandler(profilePath, tracker))
+	f.startCatcher(t, "", slowPoint, LightHandler(profilePath, time.Minute, tracker))
 
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	f.pitch(t, "point", homerun.Message{System: "tabletennis", Severity: "info", Tags: "set=3,transition=point,side=a", Timestamp: now})
@@ -321,5 +321,40 @@ func TestRedisCatcher_BurstEndsOnLastEffect(t *testing.T) {
 	}
 	if !state.On || len(state.Seg) == 0 || state.Seg[0].Fx != 6 {
 		t.Fatalf("light should still show Fireworks (fx 6), got %+v", state)
+	}
+}
+
+// TestRedisCatcher_BacklogFromLongOutageIsNotLit covers the case #55 leaves
+// open: the group exists, so its position is kept, but the catcher was down
+// long enough that what was pitched meanwhile is no longer news.
+func TestRedisCatcher_BacklogFromLongOutageIsNotLit(t *testing.T) {
+	srv := httptest.NewServer(mock.NewServer("test", "abc1234", "2026-01-01").Handler())
+	defer srv.Close()
+
+	profilePath := filepath.Join(t.TempDir(), "profile.yaml")
+	profileYAML := fmt.Sprintf("effects:\n  info:\n    systems: [\"*\"]\n    severity: [info]\n    fx: Solid\n    color: blue\n    endpoint: %s\n", srv.URL)
+	if err := os.WriteFile(profilePath, []byte(profileYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	f := newFakeRedis(t)
+	if err := f.client.XGroupCreateMkStream(context.Background(), testStream, testGroup, "$").Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	f.mr.SetTime(time.Now().Add(-10 * time.Minute))
+	f.pitch(t, "during-outage", homerun.Message{System: testStream, Severity: "info"})
+	f.mr.SetTime(time.Now())
+
+	rec := &recorder{}
+	tracker := dashboard.NewEventTracker()
+	f.startCatcher(t, "", rec.handle, LightHandler(profilePath, time.Minute, tracker))
+	f.pitch(t, "live", homerun.Message{System: testStream, Severity: "info"})
+
+	if ids := rec.waitFor(t, 2); !slices.Equal(ids, []string{"during-outage", "live"}) {
+		t.Fatalf("handled %v, want the outage backlog delivered (position kept) and the live message", ids)
+	}
+	if events := tracker.Events(); len(events) != 1 {
+		t.Fatalf("triggered %d effects, want 1 (only the live message)", len(events))
 	}
 }

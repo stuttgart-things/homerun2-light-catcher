@@ -67,10 +67,16 @@ func main() {
 		}
 	}()
 
+	maxMessageAge, err := config.LoadMaxMessageAge()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	// Build message handlers
 	msgHandlers := []catcher.MessageHandler{
 		catcher.LogHandler(),
-		catcher.LightHandler(profilePath, tracker),
+		catcher.LightHandler(profilePath, maxMessageAge, tracker),
 	}
 
 	// Create Redis catcher
@@ -93,6 +99,7 @@ func main() {
 		"consumer_group", consumerGroup,
 		"consumer_start_id", consumerStartID,
 		"profile_path", profilePath,
+		"max_message_age", maxMessageAge.String(),
 	)
 
 	// Graceful shutdown

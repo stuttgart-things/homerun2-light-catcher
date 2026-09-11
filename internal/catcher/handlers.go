@@ -1,8 +1,10 @@
 package catcher
 
 import (
+	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/dashboard"
@@ -28,32 +30,47 @@ func LogHandler() MessageHandler {
 }
 
 // LightHandler returns a MessageHandler that triggers WLED effects based on the profile.
-func LightHandler(profilePath string, tracker *dashboard.EventTracker) MessageHandler {
+//
+// Messages pitched to the stream more than maxAge ago are skipped: a light is a
+// signal about now, and a late delivery (a backlog after a long outage) would
+// only replay stale effects. Age is measured from the stream entry, not from the
+// message's timestamp field, which producers set to when the event happened
+// (git-pitcher, for example, uses the GitHub event's creation time, minutes
+// before it is pitched). maxAge 0 disables the check.
+func LightHandler(profilePath string, maxAge time.Duration, tracker *dashboard.EventTracker) MessageHandler {
 	return func(msg models.CaughtMessage) {
-		if !messageTimeValid(msg.Timestamp) {
-			slog.Warn("message too old, skipping light trigger",
-				"objectId", msg.ObjectID,
-				"timestamp", msg.Timestamp,
-			)
-			return
+		if maxAge > 0 {
+			pitched, err := streamEntryTime(msg.StreamID)
+			if err != nil {
+				slog.Warn("cannot tell when message was pitched, allowing it",
+					"objectId", msg.ObjectID,
+					"streamId", msg.StreamID,
+					"error", err,
+				)
+			} else if age := time.Since(pitched); age > maxAge {
+				slog.Warn("message pitched too long ago, skipping light trigger",
+					"objectId", msg.ObjectID,
+					"streamId", msg.StreamID,
+					"age", age.Round(time.Millisecond).String(),
+					"max_age", maxAge.String(),
+				)
+				return
+			}
 		}
 
 		wled.SendToWLED(profilePath, msg.Severity, msg.System, msg.Tags, tracker)
 	}
 }
 
-const maxTimeDiff int64 = 3
-
-// messageTimeValid checks if a message timestamp is within maxTimeDiff seconds of now.
-func messageTimeValid(timestamp string) bool {
-	ts, err := strconv.ParseInt(timestamp, 10, 64)
-	if err != nil {
-		slog.Debug("invalid timestamp, allowing message", "timestamp", timestamp)
-		return true
+// streamEntryTime returns when Redis added a stream entry, taken from the
+// millisecond part of its ID ("1789100802521-0").
+func streamEntryTime(id string) (time.Time, error) {
+	ms, _, _ := strings.Cut(id, "-")
+	n, err := strconv.ParseInt(ms, 10, 64)
+	if err != nil || n < 0 {
+		return time.Time{}, fmt.Errorf("not a stream entry ID: %q", id)
 	}
-
-	diff := time.Now().Unix() - ts
-	return diff >= -maxTimeDiff && diff <= maxTimeDiff
+	return time.UnixMilli(n), nil
 }
 
 func severityToLevel(severity string) slog.Level {

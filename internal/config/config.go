@@ -1,9 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	homerun "github.com/stuttgart-things/homerun-library/v4"
 )
@@ -47,6 +49,33 @@ func ParseStreams(streamsEnv, streamFallback string) []string {
 		return []string{streamFallback}
 	}
 	return []string{"messages"}
+}
+
+// DefaultMaxMessageAge is how long after being pitched a message still
+// triggers a light: long enough to survive a pod restart, short enough that a
+// backlog from a longer outage is not replayed.
+const DefaultMaxMessageAge = 60 * time.Second
+
+// LoadMaxMessageAge reads MAX_MESSAGE_AGE.
+func LoadMaxMessageAge() (time.Duration, error) {
+	return ParseMaxMessageAge(os.Getenv("MAX_MESSAGE_AGE"))
+}
+
+// ParseMaxMessageAge parses a Go duration ("60s", "2m"). Empty means
+// DefaultMaxMessageAge, "0" disables the age check. Exposed for tests.
+func ParseMaxMessageAge(value string) (time.Duration, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return DefaultMaxMessageAge, nil
+	}
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid MAX_MESSAGE_AGE %q: use a duration such as 60s or 2m, or 0 to disable", value)
+	}
+	if d < 0 {
+		return 0, fmt.Errorf("invalid MAX_MESSAGE_AGE %q: must not be negative", value)
+	}
+	return d, nil
 }
 
 // SetupLogging configures slog as the default logger based on LOG_FORMAT and LOG_LEVEL env vars.
