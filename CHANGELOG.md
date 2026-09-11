@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.3...v1.1.4) (2026-09-11)
+
+
+### Bug Fixes
+
+* stop waiting for Redis when a shutdown signal arrives ([#64](https://github.com/stuttgart-things/homerun2-light-catcher/issues/64)) ([8c163f3](https://github.com/stuttgart-things/homerun2-light-catcher/commit/8c163f3e1baffe05a1f61831e293bf65f990f921)), closes [#61](https://github.com/stuttgart-things/homerun2-light-catcher/issues/61) [#63](https://github.com/stuttgart-things/homerun2-light-catcher/issues/63)
+
 ## [1.1.3](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.2...v1.1.3) (2026-09-11)
 
 
