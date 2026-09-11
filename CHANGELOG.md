@@ -1,3 +1,11 @@
+## [1.0.2](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.0.1...v1.0.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **deps:** update module charm.land/bubbletea/v2 to v2.0.9 ([#39](https://github.com/stuttgart-things/homerun2-light-catcher/issues/39)) ([c7fceac](https://github.com/stuttgart-things/homerun2-light-catcher/commit/c7fceacdfd4ee750964385da9ae69d1b644f010d))
+* match effects in profile order and keep older timers from turning off newer effects ([#53](https://github.com/stuttgart-things/homerun2-light-catcher/issues/53)) ([eea2ea3](https://github.com/stuttgart-things/homerun2-light-catcher/commit/eea2ea3a815aa7bc7921c0a87b3c7e9562bc1fb8)), closes [#50](https://github.com/stuttgart-things/homerun2-light-catcher/issues/50)
+
 ## [1.0.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.0.0...v1.0.1) (2026-09-11)
 
 
