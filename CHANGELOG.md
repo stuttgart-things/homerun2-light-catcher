@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.1...v1.1.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* skip the light for messages pitched longer ago than MAX_MESSAGE_AGE ([#58](https://github.com/stuttgart-things/homerun2-light-catcher/issues/58)) ([a33f08f](https://github.com/stuttgart-things/homerun2-light-catcher/commit/a33f08fb0a0dd14120d0cb2f92aae6bcd4dc78e4)), closes [#55](https://github.com/stuttgart-things/homerun2-light-catcher/issues/55) [#57](https://github.com/stuttgart-things/homerun2-light-catcher/issues/57)
+
 ## [1.1.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.0...v1.1.1) (2026-09-11)
 
 
