@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/dashboard"
@@ -14,6 +15,34 @@ import (
 
 var httpClient = &http.Client{
 	Timeout: 10 * time.Second,
+}
+
+// durationUnit is the unit of an effect's duration; tests shorten it.
+var durationUnit = time.Second
+
+// device tracks the effects sent to one WLED endpoint.
+type device struct {
+	// mu serialises effect and turn-off requests to the endpoint, so a
+	// turn-off cannot interleave with a newer effect being sent.
+	mu sync.Mutex
+	// generation is bumped on every effect sent successfully.
+	generation uint64
+}
+
+var (
+	devicesMu sync.Mutex
+	devices   = map[string]*device{}
+)
+
+func deviceFor(endpoint string) *device {
+	devicesMu.Lock()
+	defer devicesMu.Unlock()
+	d, ok := devices[endpoint]
+	if !ok {
+		d = &device{}
+		devices[endpoint] = d
+	}
+	return d
 }
 
 // SendToWLED loads the profile, matches an effect, and sends it to the WLED device.
@@ -43,10 +72,16 @@ func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTr
 	}
 
 	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color}
+	dev := deviceFor(effect.Endpoint)
+	dev.mu.Lock()
 	if err := SendEffect(effect.Endpoint, fx, colors, meta); err != nil {
+		dev.mu.Unlock()
 		slog.Error("failed to send WLED effect", "endpoint", effect.Endpoint, "error", err)
 		return
 	}
+	dev.generation++
+	generation := dev.generation
+	dev.mu.Unlock()
 
 	slog.Info("WLED effect triggered",
 		"fx", effect.Fx,
@@ -62,17 +97,31 @@ func SendToWLED(profilePath, severity, system string, tracker *dashboard.EventTr
 	}
 
 	if effect.Duration > 0 {
-		go func() {
-			time.Sleep(time.Duration(effect.Duration) * time.Second)
-			if err := TurnOff(effect.Endpoint); err != nil {
-				slog.Error("failed to turn off WLED", "endpoint", effect.Endpoint, "error", err)
-			} else {
-				slog.Info("WLED light turned off", "endpoint", effect.Endpoint)
-				if tracker != nil {
-					tracker.RecordOff(effect.Endpoint)
-				}
-			}
-		}()
+		time.AfterFunc(time.Duration(effect.Duration)*durationUnit, func() {
+			turnOffIfCurrent(dev, effect.Endpoint, generation, tracker)
+		})
+	}
+}
+
+// turnOffIfCurrent turns the endpoint off unless a newer effect has been sent
+// to it since the effect with the given generation.
+func turnOffIfCurrent(dev *device, endpoint string, generation uint64, tracker *dashboard.EventTracker) {
+	dev.mu.Lock()
+	defer dev.mu.Unlock()
+
+	if dev.generation != generation {
+		slog.Debug("skipping WLED turn-off, a newer effect was sent", "endpoint", endpoint)
+		return
+	}
+
+	if err := TurnOff(endpoint); err != nil {
+		slog.Error("failed to turn off WLED", "endpoint", endpoint, "error", err)
+		return
+	}
+
+	slog.Info("WLED light turned off", "endpoint", endpoint)
+	if tracker != nil {
+		tracker.RecordOff(endpoint)
 	}
 }
 
