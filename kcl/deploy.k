@@ -97,6 +97,20 @@ deployment = {
                                 memory: config.memoryLimit
                             }
                         }
+                        # Startup waits up to REDIS_STARTUP_TIMEOUT (default 120s)
+                        # for Redis (#59). The health server is already up by
+                        # then, but keep the probes in step with the other
+                        # homerun2 services. 30 x 5s = 150s; raise it with the
+                        # timeout.
+                        startupProbe: {
+                            httpGet: {
+                                path: "/healthz"
+                                port: "http"
+                            }
+                            periodSeconds: 5
+                            timeoutSeconds: 3
+                            failureThreshold: 30
+                        }
                         livenessProbe: {
                             httpGet: {
                                 path: "/healthz"

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	homerun "github.com/stuttgart-things/homerun-library/v4"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/banner"
@@ -67,11 +68,7 @@ func main() {
 		}
 	}()
 
-	maxMessageAge, err := config.LoadMaxMessageAge()
-	if err != nil {
-		slog.Error("invalid configuration", "error", err)
-		os.Exit(1)
-	}
+	maxMessageAge := mustLoadDuration(config.LoadMaxMessageAge)
 
 	// Build message handlers
 	msgHandlers := []catcher.MessageHandler{
@@ -85,6 +82,8 @@ func main() {
 	consumerGroup := homerun.GetEnv("CONSUMER_GROUP", "homerun2-light-catcher")
 	consumerName := homerun.GetEnv("CONSUMER_NAME", "")
 	consumerStartID := homerun.GetEnv("CONSUMER_START_ID", catcher.DefaultStartID)
+
+	waitForRedis(redisConfig)
 
 	c, err := catcher.NewRedisCatcher(redisConfig, streams, consumerGroup, consumerName, consumerStartID, msgHandlers...)
 	if err != nil {
@@ -124,4 +123,30 @@ func main() {
 	c.Run()
 
 	slog.Info("catcher exited gracefully")
+}
+
+// mustLoadDuration returns a duration setting, or exits on an invalid value.
+func mustLoadDuration(load func() (time.Duration, error)) time.Duration {
+	d, err := load()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+	return d
+}
+
+// waitForRedis blocks until Redis answers, or exits after
+// REDIS_STARTUP_TIMEOUT. The consumer's preflight dials Redis exactly once, so
+// without this a Redis that is still starting makes the catcher exit (#59).
+func waitForRedis(rc homerun.RedisConfig) {
+	timeout := mustLoadDuration(config.LoadRedisStartupTimeout)
+	if err := catcher.WaitForRedis(rc, timeout); err != nil {
+		slog.Error("redis not reachable",
+			"error", err,
+			"addr", rc.Addr,
+			"port", rc.Port,
+			"startup_timeout", timeout.String(),
+		)
+		os.Exit(1)
+	}
 }
