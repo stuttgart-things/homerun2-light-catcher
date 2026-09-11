@@ -250,6 +250,7 @@ tests/                     # Test data (profiles, deploy config)
 | `REDIS_PORT` | Redis server port | `6379` |
 | `REDIS_PASSWORD` | Redis password | (empty) |
 | `REDIS_STREAM` | Redis stream to consume from | `messages` |
+| `REDIS_STARTUP_TIMEOUT` | How long startup retries Redis (`PING`, backoff 1s → 16s) before exiting (Go duration) | `120s` |
 | `CONSUMER_GROUP` | Consumer group name | `homerun2-light-catcher` |
 | `CONSUMER_NAME` | Consumer name within the group | hostname |
 | `MAX_MESSAGE_AGE` | Skip the light for messages pitched longer ago than this (Go duration, e.g. `60s`, `2m`); `0` disables the check | `60s` |

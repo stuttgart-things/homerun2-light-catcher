@@ -12,6 +12,7 @@ Redis Streams consumer microservice that triggers WLED light effects based on co
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_PASSWORD` | *(empty)* | Redis password |
 | `REDIS_STREAM` | `messages` | Redis stream to consume |
+| `REDIS_STARTUP_TIMEOUT` | `120s` | How long startup retries Redis before exiting (Go duration; must be positive) |
 | `CONSUMER_GROUP` | `homerun2-light-catcher` | Consumer group name |
 | `CONSUMER_NAME` | hostname | Consumer name |
 | `MAX_MESSAGE_AGE` | `60s` | Messages pitched to the stream longer ago than this don't trigger a light (Go duration; `0` disables). Measured from the stream entry, not the message's `timestamp` field |
