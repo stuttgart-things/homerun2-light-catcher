@@ -14,6 +14,7 @@ Redis Streams consumer microservice that triggers WLED light effects based on co
 | `REDIS_STREAM` | `messages` | Redis stream to consume |
 | `CONSUMER_GROUP` | `homerun2-light-catcher` | Consumer group name |
 | `CONSUMER_NAME` | hostname | Consumer name |
+| `CONSUMER_START_ID` | `$` | Start position of a newly created consumer group: `$` (only new messages), `0` (whole stream), or a stream ID. An existing group keeps its position |
 | `PROFILE_PATH` | `profile.yaml` | Path to WLED effect profile YAML |
 | `HEALTH_PORT` | `8080` | Health endpoint port |
 | `LOG_FORMAT` | `json` | Log format: `json` or `text` |
