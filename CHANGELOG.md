@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.2...v1.1.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* wait for Redis with bounded backoff instead of exiting at startup ([#60](https://github.com/stuttgart-things/homerun2-light-catcher/issues/60)) ([6ce8012](https://github.com/stuttgart-things/homerun2-light-catcher/commit/6ce80123c367a90d99c5dd2c87f0c7e0d5ec0333)), closes [#59](https://github.com/stuttgart-things/homerun2-light-catcher/issues/59) [stuttgart-things/homerun-library#123](https://github.com/stuttgart-things/homerun-library/issues/123) [#59](https://github.com/stuttgart-things/homerun2-light-catcher/issues/59)
+
 ## [1.1.2](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.1...v1.1.2) (2026-09-11)
 
 
