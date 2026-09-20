@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.4...v1.1.5) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** repariere die PR-Preview-Strecke ([2049ceb](https://github.com/stuttgart-things/homerun2-light-catcher/commit/2049ceb7bf73d0658364addb98376cd998107298)), closes [stuttgart-things/stuttgart-things#3065](https://github.com/stuttgart-things/stuttgart-things/issues/3065) [#70](https://github.com/stuttgart-things/homerun2-light-catcher/issues/70)
+
 ## [1.1.4](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.3...v1.1.4) (2026-09-11)
 
 
