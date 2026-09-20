@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.5...v1.1.6) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** baue das PR-Image aus dem Head-Commit ([ff9a4bf](https://github.com/stuttgart-things/homerun2-light-catcher/commit/ff9a4bfcdea6559779cf7d91b73f7eaecd8b2c4c)), closes [#72](https://github.com/stuttgart-things/homerun2-light-catcher/issues/72)
+
 ## [1.1.5](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.4...v1.1.5) (2026-09-20)
 
 
