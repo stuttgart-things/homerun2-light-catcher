@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.6...v1.2.0) (2026-09-21)
+
+
+### Features
+
+* **ci:** baue den WLED-Mock pro PR und verlinke seine UI ([867f905](https://github.com/stuttgart-things/homerun2-light-catcher/commit/867f905b4f3a5c110aaae966aedce385841c7326)), closes [#74](https://github.com/stuttgart-things/homerun2-light-catcher/issues/74)
+* **ci:** nimm die Preview-Domain aus der Org-Variable ([5ce5934](https://github.com/stuttgart-things/homerun2-light-catcher/commit/5ce5934f70a482181954bc7d6a7f3f756ac40909)), closes [#74](https://github.com/stuttgart-things/homerun2-light-catcher/issues/74)
+
 ## [1.1.6](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.5...v1.1.6) (2026-09-20)
 
 
