@@ -28,4 +28,8 @@ jobs:
       # /healthz and nothing at /health, so the default links to a 404.
       health-path: /healthz
       namespace-prefix: homerun2-light-catcher-pr
+      # The mock's dashboard is where a reviewer sees what the catcher did —
+      # which segments it lit, in which colour and effect. Without the link
+      # it is reachable only by guessing its hostname.
+      additional-urls: 'WLED Mock UI=https://wled-light-pr-${{ github.event.number }}.homerun2-dev.sthings-vsphere.labul.sva.de'
     secrets: inherit # pragma: allowlist secret

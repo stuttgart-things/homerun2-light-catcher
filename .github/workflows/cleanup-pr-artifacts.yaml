@@ -11,6 +11,6 @@ jobs:
     uses: stuttgart-things/github-workflow-templates/.github/workflows/call-cleanup-pr-artifacts.yaml@main
     with:
       runs-on: ubuntu-latest
-      packages: homerun2-light-catcher,homerun2-light-catcher-kustomize
+      packages: homerun2-light-catcher,homerun2-light-catcher-kustomize,homerun2-wled-mock,homerun2-wled-mock-kustomize
       dry-run: false
     secrets: inherit # pragma: allowlist secret

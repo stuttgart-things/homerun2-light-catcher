@@ -31,3 +31,19 @@ jobs:
       kustomize-oci-repo: ghcr.io/stuttgart-things/homerun2-light-catcher-kustomize
       tag: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
     secrets: inherit # pragma: allowlist secret
+
+  # Second half of the mock's PR artefacts; see build-pr-wled-mock in
+  # build-scan-image.yaml for why the mock is built per PR at all.
+  push-kustomize-wled-mock:
+    permissions:
+      contents: read
+      packages: write
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-push-kustomize.yaml@main
+    with:
+      runs-on: ubuntu-latest
+      ref: ${{ github.event.pull_request.head.sha }}
+      kcl-source-dir: kcl-wled-mock
+      kcl-profile-file: tests/kcl-wled-mock-profile.yaml
+      kustomize-oci-repo: ghcr.io/stuttgart-things/homerun2-wled-mock-kustomize
+      tag: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
+    secrets: inherit # pragma: allowlist secret

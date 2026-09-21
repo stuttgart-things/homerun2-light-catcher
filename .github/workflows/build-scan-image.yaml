@@ -28,6 +28,25 @@ jobs:
       tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }},pr-${{ github.event.number }}
     secrets: inherit # pragma: allowlist secret
 
+  # The WLED mock ships from this repository too (cmd/wled-mock, released as
+  # its own image by release.yaml), and the light-catcher preview deploys it
+  # alongside the catcher. Built per PR for the same reason the catcher is:
+  # a change to the mock is a change to this repository, and a preview that
+  # runs the last release of it shows everything except what the PR changed.
+  # The chart uses one version string for image and kustomize base, so both
+  # halves are published under the same `pr-<n>-<head sha>` tag.
+  build-pr-wled-mock:
+    if: github.event_name == 'pull_request'
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-ko-build.yaml@main
+    with:
+      runs-on: ubuntu-latest
+      registry: ghcr.io
+      image-repo: stuttgart-things/homerun2-wled-mock
+      build-path: ./cmd/wled-mock
+      ref: ${{ github.event.pull_request.head.sha }}
+      tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }},pr-${{ github.event.number }}
+    secrets: inherit # pragma: allowlist secret
+
   build-main:
     if: github.event_name != 'pull_request'
     uses: stuttgart-things/github-workflow-templates/.github/workflows/call-ko-build.yaml@main
