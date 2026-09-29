@@ -94,9 +94,49 @@ type Effect struct {
 	Tags     []string `yaml:"tags"`
 	Fx       string   `yaml:"fx"`
 	Duration int      `yaml:"duration"`
-	Color    string   `yaml:"color"`
-	Segments []int    `yaml:"segments"`
-	Endpoint string   `yaml:"endpoint"`
+	// Color is a local palette or single color (see GetColor). A name that is
+	// neither is looked up as a device palette (GET /json/pal), so WLED's own
+	// palettes such as "Lava" work too.
+	Color string `yaml:"color"`
+	// Palette names a device palette explicitly -- for one whose name a local
+	// color shadows ("Sunset"), or to combine a palette with Color. A number is
+	// used as the palette ID directly.
+	Palette string `yaml:"palette"`
+	// Segments are the WLED segment IDs the effect is sent to. Empty sends it
+	// to the main segment, as before.
+	Segments []int  `yaml:"segments"`
+	Endpoint string `yaml:"endpoint"`
+
+	// Speed (sx) and Intensity (ix), 0-255. Unset: 128 and 255.
+	Speed     *int `yaml:"speed"`
+	Intensity *int `yaml:"intensity"`
+	// Brightness (bri), 0-255. Unset: the device keeps its brightness.
+	Brightness *int `yaml:"brightness"`
+	// Transition in seconds, sent as WLED's one-off tt (100 ms units). Unset:
+	// the device's own transition.
+	Transition *float64 `yaml:"transition"`
+	// Restore puts the device back into the state it had before the effect
+	// once Duration is over, instead of switching it off -- a device with an
+	// ambient scene no longer goes dark after every event.
+	Restore bool `yaml:"restore"`
+}
+
+// Validate checks the numeric fields against WLED's ranges.
+func (e Effect) Validate() error {
+	for name, v := range map[string]*int{"speed": e.Speed, "intensity": e.Intensity, "brightness": e.Brightness} {
+		if v != nil && (*v < 0 || *v > 255) {
+			return fmt.Errorf("%s %d out of range 0-255", name, *v)
+		}
+	}
+	if e.Transition != nil && (*e.Transition < 0 || *e.Transition > 6553.5) {
+		return fmt.Errorf("transition %.1fs out of range 0-6553.5", *e.Transition)
+	}
+	for _, s := range e.Segments {
+		if s < 0 || s > 31 {
+			return fmt.Errorf("segment %d out of range 0-31", s)
+		}
+	}
+	return nil
 }
 
 // Configuration represents the top-level profile YAML.

@@ -54,6 +54,8 @@ effects:
 
 **Rules are evaluated in the order they appear in the profile, and the first match wins.** Put a specific rule above any wildcard rule it overlaps with — a `*` rule declared first shadows everything below it for the same severity. `effects` stays a map keyed by rule name; only its order in the file matters.
 
+An effect can also set a WLED palette (`color: Lava` or `palette:`), `segments`, `speed`, `intensity`, `brightness` and `transition`, and with `restore: true` the device's previous scene comes back instead of the light going off -- see [docs/profiles.md](docs/profiles.md#fields).
+
 When an effect has a `duration`, the light is turned off after that many seconds — unless a newer effect has been sent to the same endpoint in the meantime. The newer effect's own `duration` then decides when the light goes off.
 
 ### Matching on tags

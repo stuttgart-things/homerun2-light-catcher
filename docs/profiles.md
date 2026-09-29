@@ -13,9 +13,15 @@ effects:
       - <severity-level>
     fx: <WLED effect name>
     duration: <seconds>
-    color: <color palette name>
+    color: <local color/palette, or a device palette name>
+    palette: <device palette name or ID>   # optional
     segments:
-      - <segment index>
+      - <segment ID>                      # optional
+    speed: <0-255>                        # optional, default 128
+    intensity: <0-255>                    # optional, default 255
+    brightness: <0-255>                   # optional
+    transition: <seconds>                 # optional
+    restore: <true|false>                 # optional
     endpoint: <WLED HTTP endpoint>
 ```
 
@@ -27,9 +33,15 @@ effects:
 | `severity` | List of severity levels to match (e.g., `ERROR`, `WARNING`, `INFO`, `SUCCESS`). |
 | `tags` | *Optional.* Tags that must **all** be present in the message's comma-separated `tags` field, each matching one whole element (e.g., `[transition=point, side=a]`). See [Matching on tags](#matching-on-tags). |
 | `fx` | WLED effect name (e.g., `Blurz`, `DJ Light`, `Aurora`, `Twinkle`), looked up case-insensitively in the device's `/json/eff` -- any effect the device has works. A number (e.g., `23`) is used as the effect ID directly. |
-| `duration` | How long the effect runs in seconds before turning off. |
-| `color` | Color palette name (e.g., `sunset`, `ocean`, `forest`, `beach`). |
-| `segments` | WLED segment indices to apply the effect to. |
+| `duration` | How long the effect runs in seconds before turning off -- or, with `restore`, before the previous scene comes back. |
+| `color` | A local color or palette (e.g., `red`, `sunset`, `ocean`, `forest`, `beach`), sent as the segment's colors. A name that is not local is looked up case-insensitively in the device's `/json/pal` and sent as a WLED palette (e.g., `Lava`, `Rainbow`) -- the device's colors stay. A local name wins over a device palette of the same name. |
+| `palette` | *Optional.* A WLED palette by name (from the device's `/json/pal`) or by ID, sent **in addition** to `color`. With `palette` set, `color` must be a local name. Either `color` or `palette` is required. |
+| `segments` | *Optional.* WLED segment IDs (0-31) the effect goes to. Without it the effect goes to the device's main segment. |
+| `speed` | *Optional.* Effect speed (`sx`), 0-255. Default 128. |
+| `intensity` | *Optional.* Effect intensity (`ix`), 0-255. Default 255. |
+| `brightness` | *Optional.* Master brightness (`bri`), 0-255. Without it the device keeps its brightness. |
+| `transition` | *Optional.* Crossfade into the effect in seconds (WLED `tt`, 0.1 s steps, max 6553.5). |
+| `restore` | *Optional.* When `true`, the device's state is read before the effect and written back when `duration` ends, instead of switching the light off -- for devices that show an ambient scene. Effects that follow each other before the restore restore the scene from before the first one. If the state cannot be read, the light is switched off as without `restore`. |
 | `endpoint` | WLED device HTTP endpoint (e.g., `http://192.168.1.100:80`). |
 
 ## Example Profile
@@ -167,5 +179,7 @@ For development and testing, use the embedded WLED mock server:
 ```bash
 MOCK_WLED=true MOCK_WLED_PORT=9090 go run .
 ```
+
+Like a real device, the mock serves `/json/eff` and `/json/pal` and merges each `POST /json/state` into its state (a palette-only update keeps the colors, `{"on":false}` keeps the segments), so `restore` and segments behave as on hardware. `WLED_PALETTES_FILE` points it at a palette list captured from a device (`curl http://<wled>/json/pal > palettes.json`).
 
 The mock provides an HTML dashboard at `http://localhost:9090` showing received effects in real time.

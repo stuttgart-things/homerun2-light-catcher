@@ -178,7 +178,7 @@ func TestHandleEffects_WLED16Numbering(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&names); err != nil {
 		t.Fatal(err)
 	}
-	for id, want := range map[int]string{0: fxSolid, 9: "Rainbow", 17: "Twinkle", 23: "Strobe", 38: "Aurora", 42: fxFireworks, 88: "Candle", 159: "DJ Light", 163: "Blurz", 43: reservedSlot} {
+	for id, want := range map[int]string{0: fxSolid, 9: nameRainbow, 17: "Twinkle", 23: "Strobe", 38: "Aurora", 42: fxFireworks, 88: "Candle", 159: "DJ Light", 163: "Blurz", 43: reservedSlot} {
 		if id >= len(names) || names[id] != want {
 			t.Errorf("effect %d: want %q", id, want)
 		}
