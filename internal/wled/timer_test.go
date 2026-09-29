@@ -72,8 +72,8 @@ func TestSendToWLED_OlderTimerDoesNotTurnOffNewerEffect(t *testing.T) {
 	at(6) // well past the point's timer
 	if state := mockState(t, srv.URL); !state.On {
 		t.Fatal("light turned off by the older effect's timer while the newer effect was running")
-	} else if state.Seg[0].Fx != 6 {
-		t.Fatalf("expected Fireworks (fx 6) still running, got fx %d", state.Seg[0].Fx)
+	} else if state.Seg[0].Fx != 42 {
+		t.Fatalf("expected Fireworks (fx 42 on WLED 16) still running, got fx %d", state.Seg[0].Fx)
 	}
 
 	deadline := start.Add(40 * durationUnit)

@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/stuttgart-things/homerun2-light-catcher/internal/profile"
 )
 
 // WLEDState represents the state of the WLED light.
@@ -60,10 +58,12 @@ type Server struct {
 	eventCount   int
 	requestCount int
 	lastUpdated  time.Time
-	effectNames  map[int]string
-	version      string
-	commit       string
-	date         string
+	// effects is served on /json/eff; index = effect ID, as on a device.
+	effects     []string
+	effectNames map[int]string
+	version     string
+	commit      string
+	date        string
 }
 
 // NewServer creates a new WLED mock server with default state.
@@ -79,8 +79,14 @@ func NewServer(version, commit, date string) *Server {
 				{Fx: 0, Sx: 128, Ix: 255, Col: [][3]int{{255, 255, 255}, {0, 255, 0}}},
 			},
 		},
-		effectNames: profile.ReverseFxMap(),
 	}
+	effects, err := loadEffects()
+	if err != nil {
+		slog.Error("falling back to the built-in WLED 16 effect list", "error", err)
+		effects = wled16Effects
+	}
+	s.effects = effects
+	s.effectNames = effectNamesByID(effects)
 	s.addEvent("initial", s.state, nil)
 	return s
 }
@@ -175,6 +181,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleDashboard)
 	mux.HandleFunc("/json/state", s.handleState)
+	mux.HandleFunc("/json/eff", s.handleEffects)
 	mux.HandleFunc("/json/state/events", s.handleStateEvents)
 	mux.HandleFunc("/api/state", s.handleAPIState)
 	mux.HandleFunc("/api/reset", s.handleAPIReset)
@@ -320,6 +327,17 @@ func (s *Server) handleAPIReset(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"success": true}`))
+}
+
+// handleEffects serves the effect list like WLED's GET /json/eff, which the
+// light-catcher reads to turn effect names into IDs.
+func (s *Server) handleEffects(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(s.effects)
 }
 
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
