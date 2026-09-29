@@ -31,27 +31,34 @@ var effectLookupClient = &http.Client{Timeout: 3 * time.Second}
 // device that is down costs one request per minute, not one per message.
 var refetchAfter = time.Minute
 
-// effectList caches one endpoint's effect list.
-type effectList struct {
+// nameList caches one endpoint's list of effect or palette names.
+type nameList struct {
 	mu sync.Mutex
-	// ids maps a lower-cased effect name to its ID; nil until a fetch succeeded.
+	// ids maps a lower-cased name to its ID; nil until a fetch succeeded.
 	ids map[string]int
 	// attemptedAt is the time of the last fetch, successful or not.
 	attemptedAt time.Time
 }
 
-var (
-	effectListsMu sync.Mutex
-	effectLists   = map[string]*effectList{}
+// The two lists WLED numbers by position.
+const (
+	effectsPath  = "/json/eff"
+	palettesPath = "/json/pal"
 )
 
-func effectListFor(endpoint string) *effectList {
-	effectListsMu.Lock()
-	defer effectListsMu.Unlock()
-	l, ok := effectLists[endpoint]
+var (
+	nameListsMu sync.Mutex
+	nameLists   = map[string]*nameList{}
+)
+
+func nameListFor(endpoint, path string) *nameList {
+	nameListsMu.Lock()
+	defer nameListsMu.Unlock()
+	key := endpoint + path
+	l, ok := nameLists[key]
 	if !ok {
-		l = &effectList{}
-		effectLists[endpoint] = l
+		l = &nameList{}
+		nameLists[key] = l
 	}
 	return l
 }
@@ -75,14 +82,54 @@ const (
 //     answer, so a device that is briefly unreachable still gets a best guess.
 func ResolveEffect(endpoint, fx string) (id int, source string, err error) {
 	name := strings.TrimSpace(fx)
-	if id, err := strconv.Atoi(name); err == nil {
-		if id < 0 {
-			return 0, "", fmt.Errorf("effect ID %d is negative", id)
+	if n, convErr := strconv.Atoi(name); convErr == nil {
+		if n < 0 {
+			return 0, "", fmt.Errorf("effect ID %d is negative", n)
 		}
-		return id, SourceNumeric, nil
+		return n, SourceNumeric, nil
 	}
 
-	l := effectListFor(endpoint)
+	id, known, err := lookupName(endpoint, effectsPath, name)
+	if err == nil {
+		return id, SourceDevice, nil
+	}
+	if known {
+		return 0, "", fmt.Errorf("unknown effect %q: %w", name, err)
+	}
+
+	for n, id := range profile.FxMap {
+		if strings.EqualFold(n, name) {
+			return id, SourceFallback, nil
+		}
+	}
+	return 0, "", fmt.Errorf("unknown effect %q: %s%s unreachable and not in the fallback table", name, endpoint, effectsPath)
+}
+
+// ResolvePalette returns the WLED palette ID for name on the given endpoint,
+// looked up the same way as effects: a number is the ID itself, otherwise the
+// device's /json/pal answers, case-insensitively. There is no fallback table --
+// palette numbering has moved between WLED releases just like effects, and a
+// wrong palette is worse than the colors the profile names locally.
+func ResolvePalette(endpoint, palette string) (int, error) {
+	name := strings.TrimSpace(palette)
+	if id, err := strconv.Atoi(name); err == nil {
+		if id < 0 {
+			return 0, fmt.Errorf("palette ID %d is negative", id)
+		}
+		return id, nil
+	}
+	id, _, err := lookupName(endpoint, palettesPath, name)
+	if err != nil {
+		return 0, fmt.Errorf("unknown palette %q: %w", name, err)
+	}
+	return id, nil
+}
+
+// lookupName resolves name in the endpoint's list at path. known reports
+// whether the device's list was available: when it was, a miss is final; when
+// it was not, the caller may fall back.
+func lookupName(endpoint, path, name string) (id int, known bool, err error) {
+	l := nameListFor(endpoint, path)
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -91,56 +138,50 @@ func ResolveEffect(endpoint, fx string) (id int, source string, err error) {
 	// must cost one request per refetchAfter, not one per message.
 	due := l.attemptedAt.IsZero() || time.Since(l.attemptedAt) >= refetchAfter
 	if l.ids == nil && due {
-		l.fetch(endpoint)
+		l.fetch(endpoint, path)
 		due = false
 	}
 	if id, ok := l.ids[key]; ok {
-		return id, SourceDevice, nil
+		return id, true, nil
 	}
 	// Unknown to the cached list: the device may have been updated since.
 	if l.ids != nil && due {
-		l.fetch(endpoint)
+		l.fetch(endpoint, path)
 		if id, ok := l.ids[key]; ok {
-			return id, SourceDevice, nil
+			return id, true, nil
 		}
 	}
 	if l.ids != nil {
-		return 0, "", fmt.Errorf("unknown effect %q: not in %s/json/eff", name, endpoint)
+		return 0, true, fmt.Errorf("not in %s%s", endpoint, path)
 	}
-
-	for n, id := range profile.FxMap {
-		if strings.EqualFold(n, name) {
-			return id, SourceFallback, nil
-		}
-	}
-	return 0, "", fmt.Errorf("unknown effect %q: %s/json/eff unreachable and not in the fallback table", name, endpoint)
+	return 0, false, fmt.Errorf("%s%s unreachable", endpoint, path)
 }
 
-// fetch loads the endpoint's effect list. On failure the previous list, if
+// fetch loads the endpoint's list at path. On failure the previous list, if
 // any, is kept. Callers hold l.mu.
-func (l *effectList) fetch(endpoint string) {
+func (l *nameList) fetch(endpoint, path string) {
 	l.attemptedAt = time.Now()
-	names, err := fetchEffectNames(endpoint)
+	names, err := fetchNames(endpoint, path)
 	if err != nil {
 		return
 	}
 	l.ids = effectIDs(names)
 }
 
-// fetchEffectNames reads GET {endpoint}/json/eff: a JSON array of effect
-// names whose index is the effect ID.
-func fetchEffectNames(endpoint string) ([]string, error) {
-	resp, err := effectLookupClient.Get(endpoint + "/json/eff")
+// fetchNames reads GET {endpoint}{path}: a JSON array of names whose index is
+// the ID (/json/eff for effects, /json/pal for palettes).
+func fetchNames(endpoint, path string) ([]string, error) {
+	resp, err := effectLookupClient.Get(endpoint + path)
 	if err != nil {
-		return nil, fmt.Errorf("GET %s/json/eff: %w", endpoint, err)
+		return nil, fmt.Errorf("GET %s%s: %w", endpoint, path, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET %s/json/eff: %s", endpoint, resp.Status)
+		return nil, fmt.Errorf("GET %s%s: %s", endpoint, path, resp.Status)
 	}
 	var names []string
 	if err := json.NewDecoder(resp.Body).Decode(&names); err != nil {
-		return nil, fmt.Errorf("decode %s/json/eff: %w", endpoint, err)
+		return nil, fmt.Errorf("decode %s%s: %w", endpoint, path, err)
 	}
 	return names, nil
 }

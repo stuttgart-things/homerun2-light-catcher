@@ -3,6 +3,7 @@ package wled
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -27,6 +28,14 @@ type device struct {
 	mu sync.Mutex
 	// generation is bumped on every effect sent successfully.
 	generation uint64
+	// active is true from a successful effect until it is turned off or
+	// restored: while it is, the device shows OUR effect, not its own state.
+	active bool
+	// baseline is the state read before the first effect of an active run,
+	// written back when the last one ends with restore set. Captured only
+	// while !active -- otherwise a second effect in quick succession would
+	// "restore" the first one.
+	baseline map[string]any
 }
 
 var (
@@ -60,9 +69,14 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 		return
 	}
 
-	colors, err := profile.GetColor(effect.Color)
+	if err = effect.Validate(); err != nil {
+		slog.Error("invalid effect in profile", "fx", effect.Fx, "error", err)
+		return
+	}
+
+	colors, palette, err := resolveLook(effect)
 	if err != nil {
-		slog.Error("failed to resolve color", "color", effect.Color, "error", err)
+		slog.Error("failed to resolve color", "color", effect.Color, "palette", effect.Palette, "endpoint", effect.Endpoint, "error", err)
 		return
 	}
 
@@ -79,11 +93,20 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color, Tags: effect.Tags}
 	dev := deviceFor(effect.Endpoint)
 	dev.mu.Lock()
-	if err := SendEffect(effect.Endpoint, fx, colors, meta); err != nil {
+	if effect.Restore && !dev.active {
+		baseline, err := fetchRestoreState(effect.Endpoint)
+		if err != nil {
+			slog.Warn("cannot read the device state to restore, it will be switched off instead",
+				"endpoint", effect.Endpoint, "error", err)
+		}
+		dev.baseline = baseline
+	}
+	if err := postState(effect.Endpoint, payloadFor(effect, fx, colors, palette, meta).body()); err != nil {
 		dev.mu.Unlock()
 		slog.Error("failed to send WLED effect", "endpoint", effect.Endpoint, "error", err)
 		return
 	}
+	dev.active = true
 	dev.generation++
 	generation := dev.generation
 	dev.mu.Unlock()
@@ -106,14 +129,16 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 
 	if effect.Duration > 0 {
 		time.AfterFunc(time.Duration(effect.Duration)*durationUnit, func() {
-			turnOffIfCurrent(dev, effect.Endpoint, generation, tracker)
+			turnOffIfCurrent(dev, effect.Endpoint, generation, effect.Restore, tracker)
 		})
 	}
 }
 
-// turnOffIfCurrent turns the endpoint off unless a newer effect has been sent
-// to it since the effect with the given generation.
-func turnOffIfCurrent(dev *device, endpoint string, generation uint64, tracker *dashboard.EventTracker) {
+// turnOffIfCurrent ends the effect with the given generation unless a newer
+// effect has been sent to the endpoint since: it writes the baseline back if
+// the effect asked for restore and one was read, and switches the device off
+// otherwise.
+func turnOffIfCurrent(dev *device, endpoint string, generation uint64, restore bool, tracker *dashboard.EventTracker) {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
 
@@ -122,15 +147,56 @@ func turnOffIfCurrent(dev *device, endpoint string, generation uint64, tracker *
 		return
 	}
 
-	if err := TurnOff(endpoint); err != nil {
-		slog.Error("failed to turn off WLED", "endpoint", endpoint, "error", err)
-		return
+	if restore && dev.baseline != nil {
+		if err := postState(endpoint, dev.baseline); err != nil {
+			slog.Error("failed to restore WLED state", "endpoint", endpoint, "error", err)
+			return
+		}
+		slog.Info("WLED state restored", "endpoint", endpoint)
+	} else {
+		if err := TurnOff(endpoint); err != nil {
+			slog.Error("failed to turn off WLED", "endpoint", endpoint, "error", err)
+			return
+		}
+		slog.Info("WLED light turned off", "endpoint", endpoint)
 	}
-
-	slog.Info("WLED light turned off", "endpoint", endpoint)
+	dev.active = false
+	dev.baseline = nil
 	if tracker != nil {
 		tracker.RecordOff(endpoint)
 	}
+}
+
+// resolveLook turns the effect's color and palette into what is sent: local
+// colors (col) first, as before; a name that is not a local color is looked up
+// as a device palette (pal); an explicit palette is always a device palette.
+func resolveLook(effect profile.Effect) (colors [][3]int, palette *int, err error) {
+	if effect.Color != "" {
+		colors, err = profile.GetColor(effect.Color)
+		if err != nil {
+			if effect.Palette != "" {
+				// Both set and the color is not local: that is a typo, not a
+				// palette -- say so instead of guessing.
+				return nil, nil, err
+			}
+			pal, perr := ResolvePalette(effect.Endpoint, effect.Color)
+			if perr != nil {
+				return nil, nil, fmt.Errorf("%w; and as a device palette: %w", err, perr)
+			}
+			return nil, &pal, nil
+		}
+	}
+	if effect.Palette != "" {
+		pal, perr := ResolvePalette(effect.Endpoint, effect.Palette)
+		if perr != nil {
+			return nil, nil, perr
+		}
+		palette = &pal
+	}
+	if colors == nil && palette == nil {
+		return nil, nil, errors.New("effect sets neither color nor palette")
+	}
+	return colors, palette, nil
 }
 
 // EffectMeta carries context about what triggered the WLED effect.
@@ -146,31 +212,13 @@ type EffectMeta struct {
 
 // SendEffect sends an effect payload to the WLED JSON API.
 func SendEffect(endpoint string, fx int, colors [][3]int, meta EffectMeta) error {
-	payload := map[string]any{
-		"on": true,
-		"seg": []map[string]any{
-			{
-				"fx":  fx,
-				"sx":  128,
-				"ix":  255,
-				"col": colors,
-			},
-		},
-		"_severity": meta.Severity,
-		"_system":   meta.System,
-		"_effect":   meta.Effect,
-		"_color":    meta.Color,
-	}
-	if len(meta.Tags) > 0 {
-		payload["_tags"] = meta.Tags
-	}
-
-	return postState(endpoint, payload)
+	p := effectPayload{fx: fx, colors: colors, speed: defaultSpeed, intensity: defaultIntensity, meta: meta}
+	return postState(endpoint, p.body())
 }
 
 // TurnOff sends an off command to the WLED device.
 func TurnOff(endpoint string) error {
-	return postState(endpoint, map[string]any{"on": false})
+	return postState(endpoint, map[string]any{keyOn: false})
 }
 
 func postState(endpoint string, payload any) error {

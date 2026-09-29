@@ -10,6 +10,8 @@ import (
 const (
 	fxSolid     = "Solid"
 	fxFireworks = "Fireworks"
+	// nameRainbow is both an effect and a palette.
+	nameRainbow = "Rainbow"
 	// reservedSlot is what WLED returns in /json/eff for an unavailable effect.
 	reservedSlot = "RSVD"
 )
@@ -30,7 +32,7 @@ const (
 var wled16Effects = func() []string {
 	known := []string{
 		fxSolid, "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
-		"Sweep", "Dynamic", "Colorloop", "Rainbow", "Scan", "Scan Dual", "Fade",
+		"Sweep", "Dynamic", "Colorloop", nameRainbow, "Scan", "Scan Dual", "Fade",
 		"Theater", "Theater Rainbow", "Running", "Saw", "Twinkle", "Dissolve",
 		"Dissolve Rnd", "Sparkle", "Sparkle Dark", "Sparkle+", "Strobe",
 		"Strobe Rainbow", "Strobe Mega", "Blink Rainbow", "Android", "Chase",
@@ -84,4 +86,37 @@ func effectNamesByID(effects []string) map[int]string {
 		}
 	}
 	return names
+}
+
+// wledPalettes is what the mock answers on GET /json/pal: WLED's palette
+// order for the first entries, stable since 0.14 -- unlike the effects not
+// measured on the office device. For a device's exact list, capture it and
+// point WLED_PALETTES_FILE at it:
+//
+//	curl http://<wled>/json/pal > palettes.json
+var wledPalettes = []string{
+	"Default", "* Random Cycle", "* Color 1", "* Colors 1&2", "* Color Gradient",
+	"* Colors Only", "Party", "Cloud", "Lava", "Ocean", "Forest", nameRainbow,
+	"Rainbow Bands", "Sunset", "Rivendell", "Breeze", "Red & Blue", "Yellowout",
+	"Analogous", "Splash", "Pastel",
+}
+
+// loadPalettes returns WLED_PALETTES_FILE's list if set, else the built-in one.
+func loadPalettes() ([]string, error) {
+	path := os.Getenv("WLED_PALETTES_FILE")
+	if path == "" {
+		return wledPalettes, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read WLED_PALETTES_FILE: %w", err)
+	}
+	var names []string
+	if err := json.Unmarshal(data, &names); err != nil {
+		return nil, fmt.Errorf("parse WLED_PALETTES_FILE %s: %w", path, err)
+	}
+	if len(names) == 0 {
+		return nil, fmt.Errorf("WLED_PALETTES_FILE %s holds no palettes", path)
+	}
+	return names, nil
 }

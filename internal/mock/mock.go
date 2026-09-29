@@ -22,9 +22,12 @@ type WLEDState struct {
 
 // Segment represents a single segment of the WLED light.
 type Segment struct {
+	// ID addresses the segment, as on WLED; state returned by GET carries it.
+	ID  *int     `json:"id,omitempty"`
 	Fx  int      `json:"fx"`
 	Sx  int      `json:"sx"`
 	Ix  int      `json:"ix"`
+	Pal int      `json:"pal"`
 	Col [][3]int `json:"col"`
 }
 
@@ -59,7 +62,9 @@ type Server struct {
 	requestCount int
 	lastUpdated  time.Time
 	// effects is served on /json/eff; index = effect ID, as on a device.
-	effects     []string
+	effects []string
+	// palettes is served on /json/pal; index = palette ID.
+	palettes    []string
 	effectNames map[int]string
 	version     string
 	commit      string
@@ -86,6 +91,12 @@ func NewServer(version, commit, date string) *Server {
 		effects = wled16Effects
 	}
 	s.effects = effects
+	palettes, err := loadPalettes()
+	if err != nil {
+		slog.Error("falling back to the built-in WLED palette list", "error", err)
+		palettes = wledPalettes
+	}
+	s.palettes = palettes
 	s.effectNames = effectNamesByID(effects)
 	s.addEvent("initial", s.state, nil)
 	return s
@@ -139,14 +150,16 @@ const (
 )
 
 func validateSegment(i int, seg Segment) error {
-	if seg.Fx < 0 || seg.Fx > 255 {
-		return fmt.Errorf("segment %d: fx out of range 0-255", i)
+	for _, f := range []struct {
+		name string
+		v    int
+	}{{"fx", seg.Fx}, {"sx", seg.Sx}, {"ix", seg.Ix}, {"pal", seg.Pal}} {
+		if f.v < 0 || f.v > 255 {
+			return fmt.Errorf("segment %d: %s out of range 0-255", i, f.name)
+		}
 	}
-	if seg.Sx < 0 || seg.Sx > 255 {
-		return fmt.Errorf("segment %d: sx out of range 0-255", i)
-	}
-	if seg.Ix < 0 || seg.Ix > 255 {
-		return fmt.Errorf("segment %d: ix out of range 0-255", i)
+	if seg.ID != nil && (*seg.ID < 0 || *seg.ID >= maxSegments) {
+		return fmt.Errorf("segment %d: id out of range 0-%d", i, maxSegments-1)
 	}
 	if len(seg.Col) > maxColorsPerSeg {
 		return fmt.Errorf("segment %d: too many colors (max 64)", i)
@@ -182,6 +195,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/", s.handleDashboard)
 	mux.HandleFunc("/json/state", s.handleState)
 	mux.HandleFunc("/json/eff", s.handleEffects)
+	mux.HandleFunc("/json/pal", s.handlePalettes)
 	mux.HandleFunc("/json/state/events", s.handleStateEvents)
 	mux.HandleFunc("/api/state", s.handleAPIState)
 	mux.HandleFunc("/api/reset", s.handleAPIReset)
@@ -231,6 +245,13 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 		if meta.Severity != "" || meta.System != "" {
 			metaPtr = &meta
 		}
+
+		merged, mergeErr := mergeState(s.snapshot(), body, newState)
+		if mergeErr != nil {
+			http.Error(w, mergeErr.Error(), http.StatusBadRequest)
+			return
+		}
+		newState = merged
 
 		s.mu.Lock()
 		s.state = newState
