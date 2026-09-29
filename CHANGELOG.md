@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.2.0...v1.3.0) (2026-09-29)
+
+
+### Features
+
+* **wled:** Effekt-IDs am Gerät nachschlagen (/json/eff) statt fester Tabelle ([#78](https://github.com/stuttgart-things/homerun2-light-catcher/issues/78)) ([b00674c](https://github.com/stuttgart-things/homerun2-light-catcher/commit/b00674cf7cdf611e0d0077d3c98780d2382513e7)), closes [#77](https://github.com/stuttgart-things/homerun2-light-catcher/issues/77) [#77](https://github.com/stuttgart-things/homerun2-light-catcher/issues/77)
+
 # [1.2.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.1.6...v1.2.0) (2026-09-21)
 
 
