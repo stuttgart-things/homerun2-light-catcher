@@ -66,10 +66,14 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 		return
 	}
 
-	fx, ok := profile.FxMap[effect.Fx]
-	if !ok {
-		slog.Error("unknown effect", "fx", effect.Fx)
+	fx, fxSource, err := ResolveEffect(effect.Endpoint, effect.Fx)
+	if err != nil {
+		slog.Error("unknown effect", "fx", effect.Fx, "endpoint", effect.Endpoint, "error", err)
 		return
+	}
+	if fxSource == SourceFallback {
+		slog.Warn("effect list of the device unavailable, using the fallback table",
+			"fx", effect.Fx, "id", fx, "endpoint", effect.Endpoint)
 	}
 
 	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color, Tags: effect.Tags}
@@ -86,6 +90,8 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 
 	slog.Info("WLED effect triggered",
 		"fx", effect.Fx,
+		"fx_id", fx,
+		"fx_source", fxSource,
 		"color", effect.Color,
 		"endpoint", effect.Endpoint,
 		"duration", effect.Duration,

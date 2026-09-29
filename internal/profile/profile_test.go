@@ -170,12 +170,17 @@ func TestGetColor_Unknown(t *testing.T) {
 	}
 }
 
+// TestFxMap pins the fallback table to the IDs measured on WLED 16.0.1 (#77).
+// The first table was off for most names: 5 showed Random Colors, not Twinkle.
 func TestFxMap(t *testing.T) {
-	if FxMap["Solid"] != 0 {
-		t.Errorf("expected Solid=0, got %d", FxMap["Solid"])
+	want := map[string]int{
+		"Solid": 0, "Twinkle": 17, "Fireworks": 42, "Rainbow": 9, "Aurora": 38,
+		"Blurz": 163, "DJ Light": 159, "Strobe": 23,
 	}
-	if FxMap["DJ Light"] != 14 {
-		t.Errorf("expected DJ Light=14, got %d", FxMap["DJ Light"])
+	for name, id := range want {
+		if got, ok := FxMap[name]; !ok || got != id {
+			t.Errorf("FxMap[%q] = %d (present %v), want %d", name, got, ok, id)
+		}
 	}
 }
 
@@ -184,8 +189,22 @@ func TestReverseFxMap(t *testing.T) {
 	if rev[0] != "Solid" {
 		t.Errorf("expected 0=Solid, got %s", rev[0])
 	}
-	if rev[14] != "DJ Light" {
-		t.Errorf("expected 14=DJ Light, got %s", rev[14])
+	if rev[159] != "DJ Light" {
+		t.Errorf("expected 159=DJ Light, got %s", rev[159])
+	}
+}
+
+// Systems match case-insensitively like severities do (#77): a profile that
+// says "Tabletennis" must fire for the producer's "tabletennis".
+func TestMatchEffectSystemIsCaseInsensitive(t *testing.T) {
+	config := Configuration{Effects: map[string]Effect{
+		"tt": {Systems: []string{"Tabletennis"}, Severity: []string{"INFO"}, Fx: "Solid"},
+	}}
+	if _, ok := MatchEffect(config, "tabletennis", "info", ""); !ok {
+		t.Fatal("system match must ignore case")
+	}
+	if _, ok := MatchEffect(config, "homerun2", "info", ""); ok {
+		t.Fatal("a different system must still not match")
 	}
 }
 

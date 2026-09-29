@@ -50,23 +50,31 @@ var singleColors = map[string][3]int{
 	"white":  {255, 255, 255},
 }
 
-// FxMap maps WLED effect names to effect IDs.
+// FxMap is the FALLBACK from effect names to WLED effect IDs. It is used only
+// when a device's own list (GET /json/eff, see wled.ResolveEffect) cannot be
+// read: WLED numbers effects by their position in that list, and the
+// numbering moves between releases. The first version of this table was off
+// for most names on WLED 16 -- "Twinkle" at 5 showed Random Colors (#77).
+//
+// IDs as measured on WLED 16.0.1 (ESP32, 220 effects). Candle is WLED's
+// FX_MODE_CANDLE. A name missing here still works whenever the device answers.
 var FxMap = map[string]int{
 	"Solid":         0,
 	"Blink":         1,
 	"Breathe":       2,
 	"Wipe":          3,
-	"Scan":          4,
-	"Twinkle":       5,
-	"Fireworks":     6,
-	"Rainbow":       7,
-	"Candle":        8,
-	"Chase":         9,
-	"Dynamic":       10,
-	"Chase Rainbow": 11,
-	"Aurora":        12,
-	"Blurz":         13,
-	"DJ Light":      14,
+	"Dynamic":       7,
+	"Rainbow":       9,
+	"Scan":          10,
+	"Twinkle":       17,
+	"Strobe":        23,
+	"Chase":         28,
+	"Chase Rainbow": 30,
+	"Aurora":        38,
+	"Fireworks":     42,
+	"Candle":        88,
+	"DJ Light":      159,
+	"Blurz":         163,
 }
 
 // ReverseFxMap returns a mapping of effect IDs to names.
@@ -163,16 +171,18 @@ func LoadConfiguration(filepath string) (Configuration, error) {
 // MatchEffect finds the first effect matching the given system, severity and
 // tags. Effects are evaluated in profile document order and the first match
 // wins, so a specific rule must be declared above a wildcard rule it overlaps
-// with. Systems support wildcard "*" to match any system. Severity is matched
-// case-insensitively — homerun2 producers emit lowercase severities while
-// profiles are often authored in uppercase. An effect with tags only matches
-// if every one of them is present in the message's tags (see TagsMatch).
+// with. Systems support wildcard "*" to match any system. System and severity
+// are both matched case-insensitively — homerun2 producers emit lowercase
+// values while profiles are often authored in another case, and a rule that
+// silently never fires over "Tabletennis" vs "tabletennis" helps nobody (#77).
+// An effect with tags only matches if every one of them is present in the
+// message's tags (see TagsMatch).
 func MatchEffect(config Configuration, system, severity, tags string) (Effect, bool) {
 	for _, name := range config.Names() {
 		effect := config.Effects[name]
 		systemMatch := false
 		for _, s := range effect.Systems {
-			if s == "*" || s == system {
+			if s == "*" || strings.EqualFold(s, system) {
 				systemMatch = true
 				break
 			}

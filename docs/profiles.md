@@ -23,10 +23,10 @@ effects:
 
 | Field | Description |
 |-------|-------------|
-| `systems` | List of source systems to match (e.g., `github`, `gitlab`). Use `"*"` for all. |
+| `systems` | List of source systems to match (e.g., `github`, `gitlab`), case-insensitively. Use `"*"` for all. |
 | `severity` | List of severity levels to match (e.g., `ERROR`, `WARNING`, `INFO`, `SUCCESS`). |
 | `tags` | *Optional.* Tags that must **all** be present in the message's comma-separated `tags` field, each matching one whole element (e.g., `[transition=point, side=a]`). See [Matching on tags](#matching-on-tags). |
-| `fx` | WLED effect name (e.g., `Blurz`, `DJ Light`, `Aurora`, `Twinkle`). |
+| `fx` | WLED effect name (e.g., `Blurz`, `DJ Light`, `Aurora`, `Twinkle`), looked up case-insensitively in the device's `/json/eff` -- any effect the device has works. A number (e.g., `23`) is used as the effect ID directly. |
 | `duration` | How long the effect runs in seconds before turning off. |
 | `color` | Color palette name (e.g., `sunset`, `ocean`, `forest`, `beach`). |
 | `segments` | WLED segment indices to apply the effect to. |

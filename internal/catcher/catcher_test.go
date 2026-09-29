@@ -319,8 +319,8 @@ func TestRedisCatcher_BurstEndsOnLastEffect(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&state); err != nil {
 		t.Fatal(err)
 	}
-	if !state.On || len(state.Seg) == 0 || state.Seg[0].Fx != 6 {
-		t.Fatalf("light should still show Fireworks (fx 6), got %+v", state)
+	if !state.On || len(state.Seg) == 0 || state.Seg[0].Fx != 42 {
+		t.Fatalf("light should still show Fireworks (fx 42 on WLED 16, looked up via /json/eff), got %+v", state)
 	}
 }
 

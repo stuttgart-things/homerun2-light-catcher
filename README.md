@@ -91,7 +91,9 @@ effects:
 
 Both dashboards show the tags a triggered rule matched on in their event timeline.
 
-Available effects: Solid, Blink, Breathe, Wipe, Scan, Twinkle, Fireworks, Rainbow, Candle, Chase, Dynamic, Chase Rainbow, Aurora, Blurz, DJ Light
+Effects: **any effect the device has**, by name. The catcher reads the device's own list (`GET /json/eff`, index = effect ID) and caches it per endpoint, because WLED numbers effects by position and the numbering moves between releases (#77). Names match case-insensitively; a numeric `fx` (e.g. `fx: 23`) is sent as the ID itself. Only when the device cannot be reached does a built-in table answer (WLED 16 IDs for Solid, Blink, Breathe, Wipe, Dynamic, Rainbow, Scan, Twinkle, Strobe, Chase, Chase Rainbow, Aurora, Fireworks, Candle, DJ Light, Blurz). A device that answers is authoritative: a name it does not list lights nothing and logs `unknown effect`.
+
+The WLED mock serves `/json/eff` too, numbered like WLED 16. For a device's exact list, capture it and set `WLED_EFFECTS_FILE`: `curl http://<wled>/json/eff > effects.json`.
 
 Color palettes: `sunset`, `beach`, `forest`, `ocean` — or single colors: `red`, `yellow`, `green`, `blue`, `white`
 

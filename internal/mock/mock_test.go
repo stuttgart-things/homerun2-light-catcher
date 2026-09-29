@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -161,5 +162,47 @@ func TestValidateWLEDState_TooManySegments(t *testing.T) {
 	state := WLEDState{On: true, Bri: 128, Seg: segs}
 	if err := validateWLEDState(state); err == nil {
 		t.Error("expected error for 33 segments")
+	}
+}
+
+// The mock answers /json/eff like WLED 16, so the light-catcher resolves the
+// same IDs against it as against a device (#77).
+func TestHandleEffects_WLED16Numbering(t *testing.T) {
+	s := NewServer("test", "abc1234", "2026-01-01")
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/json/eff", http.NoBody))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var names []string
+	if err := json.NewDecoder(w.Body).Decode(&names); err != nil {
+		t.Fatal(err)
+	}
+	for id, want := range map[int]string{0: fxSolid, 9: "Rainbow", 17: "Twinkle", 23: "Strobe", 38: "Aurora", 42: fxFireworks, 88: "Candle", 159: "DJ Light", 163: "Blurz", 43: reservedSlot} {
+		if id >= len(names) || names[id] != want {
+			t.Errorf("effect %d: want %q", id, want)
+		}
+	}
+	if s.effectNames[42] != fxFireworks {
+		t.Errorf("dashboard names must follow the same list, got %q", s.effectNames[42])
+	}
+	if _, ok := s.effectNames[43]; ok {
+		t.Error("reserved slots are not names")
+	}
+}
+
+func TestLoadEffects_FromFile(t *testing.T) {
+	path := t.TempDir() + "/eff.json"
+	if err := os.WriteFile(path, []byte(`["Solid","Custom"]`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WLED_EFFECTS_FILE", path)
+	s := NewServer("test", "abc1234", "2026-01-01")
+	if len(s.effects) != 2 || s.effectNames[1] != "Custom" {
+		t.Fatalf("got %v", s.effects)
+	}
+	t.Setenv("WLED_EFFECTS_FILE", path+".missing")
+	if s := NewServer("test", "abc1234", "2026-01-01"); len(s.effects) != len(wled16Effects) {
+		t.Fatal("an unreadable file falls back to the built-in list")
 	}
 }
