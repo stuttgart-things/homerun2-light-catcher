@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.3.0...v1.4.0) (2026-09-29)
+
+
+### Features
+
+* **wled:** palettes, segments, speed/intensity/brightness/transition and restore ([#77](https://github.com/stuttgart-things/homerun2-light-catcher/issues/77)) ([#79](https://github.com/stuttgart-things/homerun2-light-catcher/issues/79)) ([17f1169](https://github.com/stuttgart-things/homerun2-light-catcher/commit/17f1169ea6a91e889754d745f979e06bb44d16e9))
+
 # [1.3.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.2.0...v1.3.0) (2026-09-29)
 
 
