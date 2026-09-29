@@ -73,7 +73,7 @@ const (
 //     is an error, even if profile.FxMap has it.
 //   - Only when the device's list could not be fetched does profile.FxMap
 //     answer, so a device that is briefly unreachable still gets a best guess.
-func ResolveEffect(endpoint, fx string) (int, string, error) {
+func ResolveEffect(endpoint, fx string) (id int, source string, err error) {
 	name := strings.TrimSpace(fx)
 	if id, err := strconv.Atoi(name); err == nil {
 		if id < 0 {

@@ -94,7 +94,7 @@ func NewServer(version, commit, date string) *Server {
 func (s *Server) addEvent(action string, state WLEDState, meta *eventMeta) {
 	var summary string
 	if state.On {
-		effectName := "Solid"
+		effectName := fxSolid
 		if len(state.Seg) > 0 {
 			if name, ok := s.effectNames[state.Seg[0].Fx]; ok {
 				effectName = name

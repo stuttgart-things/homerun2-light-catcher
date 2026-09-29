@@ -6,6 +6,14 @@ import (
 	"os"
 )
 
+// Names the mock itself refers to.
+const (
+	fxSolid     = "Solid"
+	fxFireworks = "Fireworks"
+	// reservedSlot is what WLED returns in /json/eff for an unavailable effect.
+	reservedSlot = "RSVD"
+)
+
 // wled16Effects is what the mock answers on GET /json/eff: a JSON array whose
 // index is the effect ID, as on a real device.
 //
@@ -21,14 +29,14 @@ import (
 //	curl http://<wled>/json/eff > effects.json
 var wled16Effects = func() []string {
 	known := []string{
-		"Solid", "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
+		fxSolid, "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
 		"Sweep", "Dynamic", "Colorloop", "Rainbow", "Scan", "Scan Dual", "Fade",
 		"Theater", "Theater Rainbow", "Running", "Saw", "Twinkle", "Dissolve",
 		"Dissolve Rnd", "Sparkle", "Sparkle Dark", "Sparkle+", "Strobe",
 		"Strobe Rainbow", "Strobe Mega", "Blink Rainbow", "Android", "Chase",
 		"Chase Random", "Chase Rainbow", "Chase Flash", "Chase Flash Rnd",
 		"Rainbow Runner", "Colorful", "Traffic Light", "Sweep Random", "Chase 2",
-		"Aurora", "Stream", "Scanner", "Lighthouse", "Fireworks",
+		"Aurora", "Stream", "Scanner", "Lighthouse", fxFireworks,
 	}
 	sparse := map[int]string{
 		88:  "Candle",
@@ -37,7 +45,7 @@ var wled16Effects = func() []string {
 	}
 	list := make([]string, 164)
 	for i := range list {
-		list[i] = "RSVD"
+		list[i] = reservedSlot
 	}
 	copy(list, known)
 	for id, name := range sparse {
@@ -71,7 +79,7 @@ func loadEffects() ([]string, error) {
 func effectNamesByID(effects []string) map[int]string {
 	names := make(map[int]string, len(effects))
 	for id, n := range effects {
-		if n != "" && n != "RSVD" && n != "-" {
+		if n != "" && n != reservedSlot && n != "-" {
 			names[id] = n
 		}
 	}

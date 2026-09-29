@@ -170,7 +170,7 @@ func TestValidateWLEDState_TooManySegments(t *testing.T) {
 func TestHandleEffects_WLED16Numbering(t *testing.T) {
 	s := NewServer("test", "abc1234", "2026-01-01")
 	w := httptest.NewRecorder()
-	s.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/json/eff", nil))
+	s.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/json/eff", http.NoBody))
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
@@ -178,12 +178,12 @@ func TestHandleEffects_WLED16Numbering(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&names); err != nil {
 		t.Fatal(err)
 	}
-	for id, want := range map[int]string{0: "Solid", 9: "Rainbow", 17: "Twinkle", 23: "Strobe", 38: "Aurora", 42: "Fireworks", 88: "Candle", 159: "DJ Light", 163: "Blurz", 43: "RSVD"} {
+	for id, want := range map[int]string{0: fxSolid, 9: "Rainbow", 17: "Twinkle", 23: "Strobe", 38: "Aurora", 42: fxFireworks, 88: "Candle", 159: "DJ Light", 163: "Blurz", 43: reservedSlot} {
 		if id >= len(names) || names[id] != want {
 			t.Errorf("effect %d: want %q", id, want)
 		}
 	}
-	if s.effectNames[42] != "Fireworks" {
+	if s.effectNames[42] != fxFireworks {
 		t.Errorf("dashboard names must follow the same list, got %q", s.effectNames[42])
 	}
 	if _, ok := s.effectNames[43]; ok {

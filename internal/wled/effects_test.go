@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	solid     = "Solid"
+	fireworks = "Fireworks"
+)
+
 // effectServer serves list() on /json/eff and counts the requests.
 func effectServer(t *testing.T, status int, list func() []string) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
@@ -52,10 +57,10 @@ func TestResolveEffect_NumericNeedsNoDevice(t *testing.T) {
 // The #77 case: the device numbers effects differently from the old table.
 func TestResolveEffect_DeviceListWinsAndIgnoresCase(t *testing.T) {
 	names := make([]string, 43)
-	names[0], names[17], names[42] = "Solid", "Twinkle", "Fireworks"
+	names[0], names[17], names[42] = solid, "Twinkle", fireworks
 	srv, hits := effectServer(t, http.StatusOK, func() []string { return names })
 
-	for fx, want := range map[string]int{"Fireworks": 42, "twinkle": 17, "SOLID": 0} {
+	for fx, want := range map[string]int{fireworks: 42, "twinkle": 17, "SOLID": 0} {
 		id, src, err := ResolveEffect(srv.URL, fx)
 		if err != nil || id != want || src != SourceDevice {
 			t.Errorf("%s: got %d %q %v, want %d from the device", fx, id, src, err, want)
@@ -70,7 +75,7 @@ func TestResolveEffect_DeviceListWinsAndIgnoresCase(t *testing.T) {
 // error even though the fallback table knows it.
 func TestResolveEffect_DeviceIsAuthoritative(t *testing.T) {
 	withRefetchAfter(t, time.Hour)
-	srv, _ := effectServer(t, http.StatusOK, func() []string { return []string{"Solid", "Blink"} })
+	srv, _ := effectServer(t, http.StatusOK, func() []string { return []string{solid, "Blink"} })
 	if _, _, err := ResolveEffect(srv.URL, "Aurora"); err == nil {
 		t.Fatal("Aurora is not on this device; the fallback table must not answer for it")
 	}
@@ -82,9 +87,9 @@ func TestResolveEffect_UnknownNameRefetchesThrottled(t *testing.T) {
 	var updated atomic.Bool
 	srv, hits := effectServer(t, http.StatusOK, func() []string {
 		if updated.Load() {
-			return []string{"Solid", "Strobe"}
+			return []string{solid, "Strobe"}
 		}
-		return []string{"Solid"}
+		return []string{solid}
 	})
 
 	withRefetchAfter(t, time.Hour)
@@ -127,7 +132,7 @@ func TestResolveEffect_UnreachableDeviceFallsBack(t *testing.T) {
 }
 
 func TestEffectIDs_SkipsReservedAndKeepsFirst(t *testing.T) {
-	ids := effectIDs([]string{"Solid", "RSVD", "-", "Blink", "solid", " "})
+	ids := effectIDs([]string{solid, "RSVD", "-", "Blink", "solid", " "})
 	if len(ids) != 2 || ids["solid"] != 0 || ids["blink"] != 3 {
 		t.Fatalf("got %v", ids)
 	}
