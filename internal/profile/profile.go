@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -91,9 +92,14 @@ type Effect struct {
 	Systems  []string `yaml:"systems"`
 	Severity []string `yaml:"severity"`
 	// Tags, if set, must all be present in the message's comma-separated tags.
-	Tags     []string `yaml:"tags"`
-	Fx       string   `yaml:"fx"`
-	Duration int      `yaml:"duration"`
+	Tags []string `yaml:"tags"`
+	Fx   string   `yaml:"fx"`
+	// Duration is whole seconds, or "auto": as long as the LED matrix at
+	// Display shows something (#77).
+	Duration Duration `yaml:"duration"`
+	// Display is the led-catcher base URL a duration of "auto" follows
+	// (GET {Display}/display). Unset: LED_CATCHER_URL.
+	Display string `yaml:"display"`
 	// Color is a local palette or single color (see GetColor). A name that is
 	// neither is looked up as a device palette (GET /json/pal), so WLED's own
 	// palettes such as "Lava" work too.
@@ -137,6 +143,40 @@ func (e Effect) Validate() error {
 		}
 	}
 	return nil
+}
+
+// Duration is how long an effect runs before the device is switched off or
+// restored.
+type Duration struct {
+	// Seconds is the fixed duration; 0 leaves the effect on.
+	Seconds int
+	// Auto ends the effect when the led-catcher's panel has finished showing
+	// the message instead: the matrix scrolls a text for (64 + width) x 30 ms
+	// and drops messages while it is busy, so a fixed duration drifts apart
+	// from it in a burst.
+	Auto bool
+}
+
+// UnmarshalYAML accepts a number of seconds or the string "auto".
+func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
+	if value.Tag == "!!str" && strings.EqualFold(strings.TrimSpace(value.Value), "auto") {
+		*d = Duration{Auto: true}
+		return nil
+	}
+	var seconds int
+	if err := value.Decode(&seconds); err != nil {
+		return fmt.Errorf("duration: want seconds or \"auto\", got %q", value.Value)
+	}
+	*d = Duration{Seconds: seconds}
+	return nil
+}
+
+// String renders the duration as it is written in a profile.
+func (d Duration) String() string {
+	if d.Auto {
+		return "auto"
+	}
+	return strconv.Itoa(d.Seconds)
 }
 
 // Configuration represents the top-level profile YAML.

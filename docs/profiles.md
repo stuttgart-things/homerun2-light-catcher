@@ -12,7 +12,8 @@ effects:
     severity:
       - <severity-level>
     fx: <WLED effect name>
-    duration: <seconds>
+    duration: <seconds, or auto>
+    display: <led-catcher URL>           # optional, for duration: auto
     color: <local color/palette, or a device palette name>
     palette: <device palette name or ID>   # optional
     segments:
@@ -33,7 +34,8 @@ effects:
 | `severity` | List of severity levels to match (e.g., `ERROR`, `WARNING`, `INFO`, `SUCCESS`). |
 | `tags` | *Optional.* Tags that must **all** be present in the message's comma-separated `tags` field, each matching one whole element (e.g., `[transition=point, side=a]`). See [Matching on tags](#matching-on-tags). |
 | `fx` | WLED effect name (e.g., `Blurz`, `DJ Light`, `Aurora`, `Twinkle`), looked up case-insensitively in the device's `/json/eff` -- any effect the device has works. A number (e.g., `23`) is used as the effect ID directly. |
-| `duration` | How long the effect runs in seconds before turning off -- or, with `restore`, before the previous scene comes back. |
+| `duration` | How long the effect runs in seconds before turning off -- or, with `restore`, before the previous scene comes back. `auto` keeps the light on exactly as long as the led-catcher's LED matrix shows something, see [Following the LED matrix](#following-the-led-matrix). |
+| `display` | *Optional.* The led-catcher base URL `duration: auto` follows (e.g. `http://homerun2-led-catcher`). Without it, `LED_CATCHER_URL` is used; with neither, an `auto` effect is not sent. |
 | `color` | A local color or palette (e.g., `red`, `sunset`, `ocean`, `forest`, `beach`), sent as the segment's colors. A name that is not local is looked up case-insensitively in the device's `/json/pal` and sent as a WLED palette (e.g., `Lava`, `Rainbow`) -- the device's colors stay. A local name wins over a device palette of the same name. |
 | `palette` | *Optional.* A WLED palette by name (from the device's `/json/pal`) or by ID, sent **in addition** to `color`. With `palette` set, `color` must be a local name. Either `color` or `palette` is required. |
 | `segments` | *Optional.* WLED segment IDs (0-31) the effect goes to. Without it the effect goes to the device's main segment. |
@@ -171,6 +173,28 @@ effects:
 > **Not the same as the notification-catcher.** homerun2-notification-catcher's `tags_contain` is a *substring* match that *ORs* the entries in its list. Here, entries are *whole elements* and *all* of them must match. Don't copy the rule shape between the two catchers unchanged.
 
 Both dashboards show the tags a triggered rule matched on in their event timeline.
+
+## Following the LED matrix
+
+The led-catcher scrolls a text for (64 + text width) x 30 ms -- a width only it knows, from its own profile and font -- and drops messages that arrive while the panel is busy. A fixed `duration` therefore drifts apart from the panel in every burst of messages.
+
+With `duration: auto` the light-catcher asks the panel instead: it polls the led-catcher's `GET /display` (no token needed) every 250 ms and ends the effect -- off, or back to the previous scene with `restore` -- when the panel stops showing:
+
+```yaml
+effects:
+  alert:
+    systems: ["*"]
+    severity: [error]
+    fx: Fireworks
+    color: red
+    duration: auto
+    display: http://homerun2-led-catcher
+    endpoint: http://wled
+```
+
+- If the panel is still busy with an earlier message when this one arrives, the led-catcher drops this one and the light stays with what is shown: light and panel end together.
+- If the panel does not start showing within 3 s (the led-catcher matched nothing), or cannot be reached for 5 s, the effect ends.
+- A held display, or a panel that never finishes, is capped at 2 minutes.
 
 ## WLED Mock
 
