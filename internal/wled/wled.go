@@ -73,6 +73,11 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 		slog.Error("invalid effect in profile", "fx", effect.Fx, "error", err)
 		return
 	}
+	display := displayURL(effect.Display)
+	if effect.Duration.Auto && display == "" {
+		slog.Error("duration auto needs the led-catcher: set display or "+ledCatcherURLEnv, "fx", effect.Fx)
+		return
+	}
 
 	colors, palette, err := resolveLook(effect)
 	if err != nil {
@@ -117,7 +122,7 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 		"fx_source", fxSource,
 		"color", effect.Color,
 		"endpoint", effect.Endpoint,
-		"duration", effect.Duration,
+		"duration", effect.Duration.String(),
 		"system", system,
 		"severity", severity,
 		"matched_tags", effect.Tags,
@@ -127,8 +132,22 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 		tracker.Record(severity, system, effect.Fx, effect.Color, effect.Endpoint, effect.Tags)
 	}
 
-	if effect.Duration > 0 {
-		time.AfterFunc(time.Duration(effect.Duration)*durationUnit, func() {
+	scheduleEnd(effect, display, dev, generation, tracker)
+}
+
+// scheduleEnd arranges for the effect with the given generation to end: after
+// its duration in seconds, or with duration auto once the led-catcher's panel
+// at display is done. A duration of 0 leaves the effect on.
+func scheduleEnd(effect profile.Effect, display string, dev *device, generation uint64, tracker *dashboard.EventTracker) {
+	switch {
+	case effect.Duration.Auto:
+		go func() {
+			reason := followDisplay(display, dev, generation)
+			slog.Debug("auto duration over", "endpoint", effect.Endpoint, "display", display, "reason", reason)
+			turnOffIfCurrent(dev, effect.Endpoint, generation, effect.Restore, tracker)
+		}()
+	case effect.Duration.Seconds > 0:
+		time.AfterFunc(time.Duration(effect.Duration.Seconds)*durationUnit, func() {
 			turnOffIfCurrent(dev, effect.Endpoint, generation, effect.Restore, tracker)
 		})
 	}
