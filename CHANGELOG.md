@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.4.0...v1.5.0) (2026-09-30)
+
+
+### Features
+
+* **wled:** duration auto follows the led-catcher's LED matrix ([#77](https://github.com/stuttgart-things/homerun2-light-catcher/issues/77)) ([#80](https://github.com/stuttgart-things/homerun2-light-catcher/issues/80)) ([f348980](https://github.com/stuttgart-things/homerun2-light-catcher/commit/f348980e2ee387e406a79f918e9485a26747e828))
+
 # [1.4.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.3.0...v1.4.0) (2026-09-29)
 
 
