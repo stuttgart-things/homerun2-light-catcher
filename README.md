@@ -97,7 +97,7 @@ Effects: **any effect the device has**, by name. The catcher reads the device's 
 
 The WLED mock serves `/json/eff` too, numbered like WLED 16. For a device's exact list, capture it and set `WLED_EFFECTS_FILE`: `curl http://<wled>/json/eff > effects.json`.
 
-Color palettes: `sunset`, `beach`, `forest`, `ocean` — or single colors: `red`, `yellow`, `green`, `blue`, `white`
+Color palettes: `sunset`, `beach`, `forest`, `ocean` — or single colors: `red`, `orange`, `yellow`, `green`, `blue`, `white`
 
 ## Dashboards
 
