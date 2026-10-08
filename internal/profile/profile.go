@@ -6,6 +6,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
+	// The image may lack a zoneinfo database; quietHours.timezone must
+	// resolve anyway.
+	_ "time/tzdata"
 
 	"gopkg.in/yaml.v3"
 )
@@ -183,6 +187,9 @@ func (d Duration) String() string {
 type Configuration struct {
 	Effects map[string]Effect `yaml:"effects"`
 
+	// QuietHours, when set, lets only its Allow severities match (#82).
+	QuietHours *QuietHours `yaml:"quietHours"`
+
 	// order holds the effect names in profile document order.
 	order []string
 }
@@ -233,6 +240,73 @@ func (c Configuration) Names() []string {
 	return append(names, rest...)
 }
 
+// QuietHours is a window in which only the Allow severities reach the strip
+// (#82): From to To, which may cross midnight, plus all of Saturday and Sunday
+// with Weekends. Times are HH:MM in Timezone (an IANA name; empty is local).
+// The same schema as led-catcher's quietHours, so one profile reads the same
+// on both catchers.
+type QuietHours struct {
+	From     string   `yaml:"from"`
+	To       string   `yaml:"to"`
+	Weekends bool     `yaml:"weekends"`
+	Timezone string   `yaml:"timezone"`
+	Allow    []string `yaml:"allow"`
+}
+
+// now is the clock MatchEffect checks quiet hours against; tests replace it.
+var now = time.Now
+
+// Validate checks the times and the time zone.
+func (q QuietHours) Validate() error {
+	if _, err := time.Parse("15:04", q.From); err != nil {
+		return fmt.Errorf("quietHours.from %q: want HH:MM", q.From)
+	}
+	if _, err := time.Parse("15:04", q.To); err != nil {
+		return fmt.Errorf("quietHours.to %q: want HH:MM", q.To)
+	}
+	if _, err := time.LoadLocation(q.Timezone); err != nil {
+		return fmt.Errorf("quietHours.timezone %q: %w", q.Timezone, err)
+	}
+	return nil
+}
+
+// Active reports whether t falls into the quiet window.
+func (q QuietHours) Active(t time.Time) bool {
+	if loc, err := time.LoadLocation(q.Timezone); err == nil {
+		t = t.In(loc)
+	}
+	if q.Weekends && (t.Weekday() == time.Saturday || t.Weekday() == time.Sunday) {
+		return true
+	}
+	from, errFrom := time.Parse("15:04", q.From)
+	to, errTo := time.Parse("15:04", q.To)
+	if errFrom != nil || errTo != nil {
+		return false
+	}
+	minute := t.Hour()*60 + t.Minute()
+	start := from.Hour()*60 + from.Minute()
+	end := to.Hour()*60 + to.Minute()
+	if start <= end {
+		return minute >= start && minute < end
+	}
+	return minute >= start || minute < end
+}
+
+// Allows reports whether severity gets through during quiet hours. No Allow
+// list means error and critical.
+func (q QuietHours) Allows(severity string) bool {
+	allow := q.Allow
+	if len(allow) == 0 {
+		allow = []string{"error", "critical"}
+	}
+	for _, a := range allow {
+		if strings.EqualFold(a, severity) {
+			return true
+		}
+	}
+	return false
+}
+
 // LoadConfiguration reads and parses a profile YAML file.
 func LoadConfiguration(filepath string) (Configuration, error) {
 	data, err := os.ReadFile(filepath)
@@ -243,6 +317,11 @@ func LoadConfiguration(filepath string) (Configuration, error) {
 	var config Configuration
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return Configuration{}, fmt.Errorf("failed to parse profile: %w", err)
+	}
+	if config.QuietHours != nil {
+		if err := config.QuietHours.Validate(); err != nil {
+			return Configuration{}, fmt.Errorf("invalid profile: %w", err)
+		}
 	}
 
 	return config, nil
@@ -256,8 +335,12 @@ func LoadConfiguration(filepath string) (Configuration, error) {
 // values while profiles are often authored in another case, and a rule that
 // silently never fires over "Tabletennis" vs "tabletennis" helps nobody (#77).
 // An effect with tags only matches if every one of them is present in the
-// message's tags (see TagsMatch).
+// message's tags (see TagsMatch). During the profile's quiet hours, a
+// severity it does not allow matches nothing.
 func MatchEffect(config Configuration, system, severity, tags string) (Effect, bool) {
+	if q := config.QuietHours; q != nil && !q.Allows(severity) && q.Active(now()) {
+		return Effect{}, false
+	}
 	for _, name := range config.Names() {
 		effect := config.Effects[name]
 		systemMatch := false

@@ -174,6 +174,30 @@ effects:
 
 Both dashboards show the tags a triggered rule matched on in their event timeline.
 
+## Quiet hours
+
+`quietHours` keeps the strip calm outside office hours: from `from` to `to`
+(it may cross midnight), and all of Saturday and Sunday with `weekends: true`,
+only the `allow` severities match an effect (default `error`, `critical`).
+Everything else matches nothing and the strip stays as it is. Times are
+`HH:MM` in `timezone` (an IANA name; empty is the host's local time). An
+invalid time or zone is rejected when the profile is loaded. The profile is
+re-read for every message, so a change applies without a restart.
+
+```yaml
+quietHours:
+  from: "19:00"
+  to: "07:00"
+  weekends: true
+  timezone: Europe/Berlin
+  allow: [error, critical]
+effects:
+  ...
+```
+
+The schema is the same as led-catcher's `quietHours`, so one profile reads the
+same on both catchers.
+
 ## Following the LED matrix
 
 The led-catcher scrolls a text for (64 + text width) x 30 ms -- a width only it knows, from its own profile and font -- and drops messages that arrive while the panel is busy. A fixed `duration` therefore drifts apart from the panel in every burst of messages.
