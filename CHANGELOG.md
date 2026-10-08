@@ -1,3 +1,11 @@
+# [1.6.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.5.0...v1.6.0) (2026-10-08)
+
+
+### Features
+
+* **profile:** quiet hours, only a severity floor gets through ([3db3460](https://github.com/stuttgart-things/homerun2-light-catcher/commit/3db34607d27cf6506dd111672bccd742c110f8a5)), closes [#82](https://github.com/stuttgart-things/homerun2-light-catcher/issues/82)
+* **profile:** single colour orange for warnings ([6a0fbfb](https://github.com/stuttgart-things/homerun2-light-catcher/commit/6a0fbfb77989f4fcdfddf4ee8449ae476a1c5776))
+
 # [1.5.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.4.0...v1.5.0) (2026-09-30)
 
 
