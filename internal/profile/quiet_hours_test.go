@@ -127,3 +127,10 @@ func TestNoQuietHoursWithoutConfig(t *testing.T) {
 		t.Error("without quietHours everything matches")
 	}
 }
+
+func TestGetColorOrange(t *testing.T) {
+	colors, err := GetColor("orange")
+	if err != nil || len(colors) != 1 || colors[0] != [3]int{255, 120, 0} {
+		t.Errorf("orange: got %v, %v", colors, err)
+	}
+}
