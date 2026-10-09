@@ -70,7 +70,7 @@ func TestReplayEndpoint(t *testing.T) {
 
 	post := func(path string) int {
 		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, nil))
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
 		return rec.Code
 	}
 
@@ -111,7 +111,7 @@ func TestReplayRateLimit(t *testing.T) {
 	codes := map[int]int{}
 	for i := 0; i < replayLimit+1; i++ {
 		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/events/1/replay", nil))
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/events/1/replay", http.NoBody))
 		codes[rec.Code]++
 	}
 	if codes[http.StatusAccepted] != replayLimit || codes[http.StatusTooManyRequests] != 1 {
@@ -120,7 +120,7 @@ func TestReplayRateLimit(t *testing.T) {
 
 	clock = clock.Add(time.Minute)
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/events/1/replay", nil))
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/events/1/replay", http.NoBody))
 	if rec.Code != http.StatusAccepted {
 		t.Errorf("after a minute: got %d", rec.Code)
 	}
