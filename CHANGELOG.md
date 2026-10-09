@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.6.0...v1.7.0) (2026-10-09)
+
+
+### Features
+
+* **dashboard:** show the message behind each effect, replay it with one click; escape every field ([d22d85b](https://github.com/stuttgart-things/homerun2-light-catcher/commit/d22d85b872cf39da18cfdbc535cfa7dcaa6a747e)), closes [#84](https://github.com/stuttgart-things/homerun2-light-catcher/issues/84)
+
 # [1.6.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.5.0...v1.6.0) (2026-10-08)
 
 
