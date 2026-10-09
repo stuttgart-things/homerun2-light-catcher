@@ -58,7 +58,15 @@ func LightHandler(profilePath string, maxAge time.Duration, tracker *dashboard.E
 			}
 		}
 
-		wled.SendToWLED(profilePath, msg.Severity, msg.System, msg.Tags, tracker)
+		wled.Trigger(profilePath, wled.Source{
+			Severity: msg.Severity,
+			System:   msg.System,
+			Tags:     msg.Tags,
+			Title:    msg.Title,
+			Message:  msg.Message.Message,
+			Author:   msg.Author,
+			URL:      msg.URL,
+		}, tracker, wled.TriggerOptions{})
 	}
 }
 

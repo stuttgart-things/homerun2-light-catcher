@@ -17,6 +17,7 @@ import (
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/dashboard"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/handlers"
 	"github.com/stuttgart-things/homerun2-light-catcher/internal/mock"
+	"github.com/stuttgart-things/homerun2-light-catcher/internal/wled"
 )
 
 // Build-time variables set via ldflags.
@@ -52,6 +53,22 @@ func main() {
 	// Event tracker for dashboard
 	tracker := dashboard.NewEventTracker()
 	dash := dashboard.NewHandler(tracker, version, commit, date)
+	// The timeline's ▶ plays an effect again, whatever the quiet hours (#84).
+	dash.SetReplayer(func(ev dashboard.LightEvent) bool {
+		original := ev.ID
+		if ev.ReplayOf > 0 {
+			original = ev.ReplayOf
+		}
+		return wled.Trigger(profilePath, wled.Source{
+			Severity: ev.Severity,
+			System:   ev.System,
+			Tags:     ev.MessageTags,
+			Title:    ev.Title,
+			Message:  ev.Message,
+			Author:   ev.Author,
+			URL:      ev.URL,
+		}, tracker, wled.TriggerOptions{IgnoreQuietHours: true, ReplayOf: original})
+	})
 
 	// HTTP server with dashboard + health endpoints
 	go func() {
