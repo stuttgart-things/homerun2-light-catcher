@@ -54,41 +54,74 @@ func deviceFor(endpoint string) *device {
 	return d
 }
 
+// Source is the message an effect is triggered for. The dashboard shows it
+// next to the effect, so the timeline says what made the strip light up (#84).
+type Source struct {
+	Severity string
+	System   string
+	// Tags is the message's comma-separated tags field.
+	Tags    string
+	Title   string
+	Message string
+	Author  string
+	URL     string
+}
+
+// TriggerOptions change how Trigger matches and records an effect.
+type TriggerOptions struct {
+	// IgnoreQuietHours plays the effect whatever the time: set for a replay
+	// from the dashboard, which is a deliberate request (#84).
+	IgnoreQuietHours bool
+	// ReplayOf is the dashboard event this trigger plays again, 0 for none.
+	ReplayOf int
+}
+
 // SendToWLED loads the profile, matches an effect, and sends it to the WLED device.
 // tags is the message's comma-separated tags field.
 func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.EventTracker) {
+	Trigger(profilePath, Source{Severity: severity, System: system, Tags: tags}, tracker, TriggerOptions{})
+}
+
+// Trigger loads the profile, matches an effect for src, and sends it to the
+// WLED device. It returns false when no effect was played.
+func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, opts TriggerOptions) bool {
+	severity, system, tags := src.Severity, src.System, src.Tags
 	config, err := profile.LoadConfiguration(profilePath)
 	if err != nil {
 		slog.Error("failed to load profile", "error", err)
-		return
+		return false
 	}
 
-	effect, found := profile.MatchEffect(config, system, severity, tags)
+	match := profile.MatchEffect
+	if opts.IgnoreQuietHours {
+		match = profile.MatchEffectAnyTime
+	}
+	effect, found := match(config, system, severity, tags)
 	if !found {
 		slog.Warn("no matching effect", "system", system, "severity", severity, "tags", tags)
-		return
+		return false
 	}
 
 	if err = effect.Validate(); err != nil {
 		slog.Error("invalid effect in profile", "fx", effect.Fx, "error", err)
-		return
+		return false
 	}
 	display := displayURL(effect.Display)
 	if effect.Duration.Auto && display == "" {
 		slog.Error("duration auto needs the led-catcher: set display or "+ledCatcherURLEnv, "fx", effect.Fx)
-		return
+		return false
 	}
 
 	colors, palette, err := resolveLook(effect)
 	if err != nil {
 		slog.Error("failed to resolve color", "color", effect.Color, "palette", effect.Palette, "endpoint", effect.Endpoint, "error", err)
-		return
+		return false
 	}
 
 	fx, fxSource, err := ResolveEffect(effect.Endpoint, effect.Fx)
 	if err != nil {
 		slog.Error("unknown effect", "fx", effect.Fx, "endpoint", effect.Endpoint, "error", err)
-		return
+		return false
 	}
 	if fxSource == SourceFallback {
 		slog.Warn("effect list of the device unavailable, using the fallback table",
@@ -109,7 +142,7 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 	if err := postState(effect.Endpoint, payloadFor(effect, fx, colors, palette, meta).body()); err != nil {
 		dev.mu.Unlock()
 		slog.Error("failed to send WLED effect", "endpoint", effect.Endpoint, "error", err)
-		return
+		return false
 	}
 	dev.active = true
 	dev.generation++
@@ -129,10 +162,25 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 	)
 
 	if tracker != nil {
-		tracker.Record(severity, system, effect.Fx, effect.Color, effect.Endpoint, effect.Tags)
+		tracker.RecordEvent(dashboard.LightEvent{
+			Severity:    severity,
+			System:      system,
+			Effect:      effect.Fx,
+			Color:       effect.Color,
+			Endpoint:    effect.Endpoint,
+			On:          true,
+			Tags:        effect.Tags,
+			Title:       src.Title,
+			Message:     src.Message,
+			Author:      src.Author,
+			URL:         src.URL,
+			MessageTags: src.Tags,
+			ReplayOf:    opts.ReplayOf,
+		})
 	}
 
 	scheduleEnd(effect, display, dev, generation, tracker)
+	return true
 }
 
 // scheduleEnd arranges for the effect with the given generation to end: after

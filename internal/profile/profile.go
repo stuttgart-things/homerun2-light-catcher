@@ -342,6 +342,12 @@ func MatchEffect(config Configuration, system, severity, tags string) (Effect, b
 	if q := config.QuietHours; q != nil && !q.Allows(severity) && q.Active(now()) {
 		return Effect{}, false
 	}
+	return MatchEffectAnyTime(config, system, severity, tags)
+}
+
+// MatchEffectAnyTime is MatchEffect without quiet hours, for an effect played
+// again on request from the dashboard (#84): a click is a deliberate request.
+func MatchEffectAnyTime(config Configuration, system, severity, tags string) (Effect, bool) {
 	for _, name := range config.Names() {
 		effect := config.Effects[name]
 		systemMatch := false

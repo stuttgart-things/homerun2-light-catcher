@@ -5,8 +5,19 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
+
+// Replayer plays a timeline event's effect again. It returns false when the
+// current profile matches no effect for it.
+type Replayer func(ev LightEvent) bool
+
+// replayLimit is how many replays a minute the dashboard accepts, so a stuck
+// click or a script cannot keep the strip flashing.
+const replayLimit = 30
 
 // Handler serves the HTMX dashboard and API endpoints.
 type Handler struct {
@@ -14,6 +25,11 @@ type Handler struct {
 	version string
 	commit  string
 	date    string
+
+	replay  Replayer
+	mu      sync.Mutex
+	replays []time.Time
+	now     func() time.Time
 }
 
 // NewHandler creates a dashboard handler.
@@ -23,13 +39,72 @@ func NewHandler(tracker *EventTracker, version, commit, date string) *Handler {
 		version: version,
 		commit:  commit,
 		date:    date,
+		now:     time.Now,
 	}
+}
+
+// SetReplayer enables the ▶ button of the timeline and POST
+// /api/events/{id}/replay (#84).
+func (h *Handler) SetReplayer(r Replayer) {
+	h.replay = r
 }
 
 // RegisterRoutes registers dashboard routes on the given mux.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", h.handleDashboard)
 	mux.HandleFunc("/api/events", h.handleEvents)
+	mux.HandleFunc("/timeline", h.handleTimeline)
+	mux.HandleFunc("POST /api/events/{id}/replay", h.handleReplay)
+}
+
+// handleTimeline serves the rendered timeline, which the page polls.
+func (h *Handler) handleTimeline(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("X-Event-Count", strconv.Itoa(h.tracker.Count()))
+	fmt.Fprint(w, h.renderTimeline())
+}
+
+// handleReplay plays an event's effect again (#84).
+func (h *Handler) handleReplay(w http.ResponseWriter, r *http.Request) {
+	if h.replay == nil {
+		http.NotFound(w, r)
+		return
+	}
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "bad event id", http.StatusBadRequest)
+		return
+	}
+	ev, ok := h.tracker.Get(id)
+	if !ok || !ev.On {
+		http.Error(w, fmt.Sprintf("no event %d to play again", id), http.StatusNotFound)
+		return
+	}
+	if wait := h.acquire(); wait > 0 {
+		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
+		http.Error(w, fmt.Sprintf("rate limit: %d replays per minute", replayLimit), http.StatusTooManyRequests)
+		return
+	}
+	if !h.replay(ev) {
+		http.Error(w, "the profile matches no effect for this event any more", http.StatusConflict)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+// acquire takes a replay slot, or returns how long until one frees up.
+func (h *Handler) acquire() time.Duration {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	now := h.now()
+	for len(h.replays) > 0 && now.Sub(h.replays[0]) >= time.Minute {
+		h.replays = h.replays[1:]
+	}
+	if len(h.replays) >= replayLimit {
+		return time.Minute - now.Sub(h.replays[0])
+	}
+	h.replays = append(h.replays, now)
+	return 0
 }
 
 func (h *Handler) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -71,8 +146,6 @@ func severityDotClass(severity string) string {
 }
 
 func (h *Handler) generateHTML() string {
-	events := h.tracker.Events()
-
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>HOMERUN² Light Catcher</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -119,9 +192,26 @@ func (h *Handler) generateHTML() string {
   .event-severity.info { color: #60a5fa; }
   .event-system { color: #818cf8; min-width: 100px; }
   .event-effect { color: #e2e8f0; }
-  .event-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+  .event-tags { display: flex; flex-wrap: wrap; gap: 4px; }
   .event-tag { font-family: 'Courier New', monospace; font-size: 11px; color: #fbbf24; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); border-radius: 4px; padding: 1px 6px; }
   .event-off { color: #64748b; font-style: italic; }
+  details.event { border-bottom: 1px solid #1e293b; }
+  details.event > summary { list-style: none; cursor: pointer; border-bottom: none; }
+  details.event > summary::-webkit-details-marker { display: none; }
+  details.event > summary:hover { background: #1e293b; }
+  details.event[open] > summary { background: #1e293b; }
+  .event-title { color: #f8fafc; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .event-replay { color: #a855f7; margin-right: 4px; }
+  .event-detail { padding: 8px 12px 12px 30px; color: #cbd5e1; font-size: 12px; }
+  .detail-message { white-space: pre-wrap; margin-bottom: 8px; color: #e2e8f0; }
+  .event-detail dl { display: grid; grid-template-columns: 70px 1fr; gap: 2px 10px; }
+  .event-detail dt { color: #64748b; }
+  .event-detail dd { font-family: 'Courier New', monospace; word-break: break-all; }
+  .event-detail a { color: #818cf8; }
+  button.replay { background: none; border: 1px solid #334155; color: #a855f7; border-radius: 4px; padding: 1px 8px; cursor: pointer; font-size: 12px; }
+  button.replay:hover { border-color: #a855f7; }
+  button.replay.ok { color: #4ade80; border-color: #4ade80; }
+  button.replay.fail { color: #ff4444; border-color: #ff4444; }
   .empty-state { text-align: center; color: #64748b; padding: 40px; font-size: 14px; }
   .build-footer { background: #0f172a; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
   .build-footer .label { color: #64748b; }
@@ -150,83 +240,41 @@ func (h *Handler) generateHTML() string {
     <div class="timeline-title">Light Event Timeline</div>
     <div id="timeline">`)
 
-	if len(events) == 0 {
-		sb.WriteString(`<div class="empty-state">No light events yet. Waiting for messages...</div>`)
-	} else {
-		for i := len(events) - 1; i >= 0; i-- {
-			ev := events[i]
-			sb.WriteString(`<div class="event-row">`)
-			if ev.On {
-				cls := severityDotClass(ev.Severity)
-				fmt.Fprintf(&sb, `<span class="event-dot %s"></span>`, cls)
-				fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, ev.Timestamp)
-				fmt.Fprintf(&sb, `<span class="event-severity %s">%s</span>`, cls, ev.Severity)
-				fmt.Fprintf(&sb, `<span class="event-system">%s</span>`, ev.System)
-				fmt.Fprintf(&sb, `<span class="event-effect">%s / %s</span>`, ev.Effect, ev.Color)
-				if len(ev.Tags) > 0 {
-					sb.WriteString(`<span class="event-tags" title="matched tags">`)
-					for _, tag := range ev.Tags {
-						fmt.Fprintf(&sb, `<span class="event-tag">%s</span>`, html.EscapeString(tag))
-					}
-					sb.WriteString(`</span>`)
-				}
-			} else {
-				sb.WriteString(`<span class="event-dot off"></span>`)
-				fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, ev.Timestamp)
-				sb.WriteString(`<span class="event-off">Light turned off</span>`)
-			}
-			sb.WriteString(`</div>`)
-		}
-	}
+	sb.WriteString(h.renderTimeline())
 
 	sb.WriteString(`</div></div></div>
 <script>
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, function(c) {
-    return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
-  });
-}
+// The server renders the timeline (one place that escapes); this polls it and
+// keeps open details open across refreshes (#84).
+var openIds = {};
 function updateDashboard() {
-  fetch('/api/events')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      document.getElementById('event-count').textContent = data.count;
-      var events = data.events;
+  fetch('/timeline')
+    .then(function(r) {
+      var count = r.headers.get('X-Event-Count');
+      if (count !== null) document.getElementById('event-count').textContent = count;
+      return r.text();
+    })
+    .then(function(html) {
       var tl = document.getElementById('timeline');
-      if (events.length === 0) {
-        tl.innerHTML = '<div class="empty-state">No light events yet. Waiting for messages...</div>';
-        return;
-      }
-      var html = '';
-      for (var i = events.length - 1; i >= 0; i--) {
-        var ev = events[i];
-        html += '<div class="event-row">';
-        if (ev.on) {
-          var sev = (ev.severity || 'info').toUpperCase();
-          var cls = sev === 'ERROR' ? 'error' : sev === 'WARNING' ? 'warning' : sev === 'SUCCESS' ? 'success' : 'info';
-          html += '<span class="event-dot ' + cls + '"></span>';
-          html += '<span class="event-time">' + ev.timestamp + '</span>';
-          html += '<span class="event-severity ' + cls + '">' + sev + '</span>';
-          html += '<span class="event-system">' + (ev.system || '') + '</span>';
-          html += '<span class="event-effect">' + (ev.effect || '') + ' / ' + (ev.color || '') + '</span>';
-          if (ev.tags && ev.tags.length) {
-            html += '<span class="event-tags" title="matched tags">';
-            for (var t = 0; t < ev.tags.length; t++) {
-              html += '<span class="event-tag">' + esc(ev.tags[t]) + '</span>';
-            }
-            html += '</span>';
-          }
-        } else {
-          html += '<span class="event-dot off"></span>';
-          html += '<span class="event-time">' + ev.timestamp + '</span>';
-          html += '<span class="event-off">Light turned off</span>';
-        }
-        html += '</div>';
-      }
+      tl.querySelectorAll('details[open]').forEach(function(d) { openIds[d.dataset.id] = true; });
       tl.innerHTML = html;
+      tl.querySelectorAll('details').forEach(function(d) { if (openIds[d.dataset.id]) d.open = true; });
     })
     .catch(function(err) { console.error('Error:', err); });
 }
+document.getElementById('timeline').addEventListener('toggle', function(e) {
+  if (e.target.tagName === 'DETAILS' && !e.target.open) delete openIds[e.target.dataset.id];
+}, true);
+document.getElementById('timeline').addEventListener('click', function(e) {
+  var btn = e.target.closest('button.replay');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  btn.disabled = true;
+  fetch('/api/events/' + btn.dataset.id + '/replay', { method: 'POST' })
+    .then(function(r) { btn.classList.add(r.ok ? 'ok' : 'fail'); return updateDashboard(); })
+    .finally(function() { btn.disabled = false; });
+});
 setInterval(updateDashboard, 2000);
 </script>`)
 
@@ -241,4 +289,78 @@ setInterval(updateDashboard, 2000);
 </body></html>`, h.version, shortCommit(h.commit), h.date)
 
 	return sb.String()
+}
+
+// renderTimeline renders the timeline, newest first. Every field that comes
+// from a message is escaped: titles, systems and tags are whatever a pitcher
+// sent, and the page is served to every viewer (#84).
+func (h *Handler) renderTimeline() string {
+	events := h.tracker.Events()
+	if len(events) == 0 {
+		return `<div class="empty-state">No light events yet. Waiting for messages...</div>`
+	}
+	esc := html.EscapeString
+
+	var sb strings.Builder
+	for i := len(events) - 1; i >= 0; i-- {
+		ev := events[i]
+		if !ev.On {
+			sb.WriteString(`<div class="event-row">`)
+			sb.WriteString(`<span class="event-dot off"></span>`)
+			fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, esc(ev.Timestamp))
+			sb.WriteString(`<span class="event-off">Light turned off</span>`)
+			sb.WriteString(`</div>`)
+			continue
+		}
+
+		cls := severityDotClass(ev.Severity)
+		fmt.Fprintf(&sb, `<details class="event" data-id="%d"><summary class="event-row">`, ev.ID)
+		fmt.Fprintf(&sb, `<span class="event-dot %s"></span>`, cls)
+		fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, esc(ev.Timestamp))
+		fmt.Fprintf(&sb, `<span class="event-severity %s">%s</span>`, cls, esc(ev.Severity))
+		fmt.Fprintf(&sb, `<span class="event-system">%s</span>`, esc(ev.System))
+		replayMark := ""
+		if ev.ReplayOf > 0 {
+			replayMark = `<span class="event-replay" title="played again">↻</span>`
+		}
+		fmt.Fprintf(&sb, `<span class="event-title">%s%s</span>`, replayMark, esc(ev.Title))
+		fmt.Fprintf(&sb, `<span class="event-effect">%s / %s</span>`, esc(ev.Effect), esc(ev.Color))
+		if len(ev.Tags) > 0 {
+			sb.WriteString(`<span class="event-tags" title="matched tags">`)
+			for _, tag := range ev.Tags {
+				fmt.Fprintf(&sb, `<span class="event-tag">%s</span>`, esc(tag))
+			}
+			sb.WriteString(`</span>`)
+		}
+		if h.replay != nil {
+			fmt.Fprintf(&sb, `<button class="replay" data-id="%d" title="Play again on the strip">▶</button>`, ev.ID)
+		}
+		sb.WriteString(`</summary><div class="event-detail">`)
+		if ev.Message != "" {
+			fmt.Fprintf(&sb, `<div class="detail-message">%s</div>`, esc(ev.Message))
+		}
+		sb.WriteString(`<dl>`)
+		if ev.Author != "" {
+			fmt.Fprintf(&sb, `<dt>author</dt><dd>%s</dd>`, esc(ev.Author))
+		}
+		if ev.MessageTags != "" {
+			fmt.Fprintf(&sb, `<dt>tags</dt><dd>%s</dd>`, esc(ev.MessageTags))
+		}
+		if u := safeURL(ev.URL); u != "" {
+			fmt.Fprintf(&sb, `<dt>link</dt><dd><a href="%s" target="_blank" rel="noopener">%s</a></dd>`, esc(u), esc(u))
+		}
+		fmt.Fprintf(&sb, `<dt>endpoint</dt><dd>%s</dd>`, esc(ev.Endpoint))
+		sb.WriteString(`</dl></div></details>`)
+	}
+	return sb.String()
+}
+
+// safeURL returns u if it is an http(s) link, else "": a message's URL
+// becomes an href, and javascript: must not.
+func safeURL(u string) string {
+	lower := strings.ToLower(strings.TrimSpace(u))
+	if strings.HasPrefix(lower, "https://") || strings.HasPrefix(lower, "http://") {
+		return strings.TrimSpace(u)
+	}
+	return ""
 }

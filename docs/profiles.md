@@ -231,3 +231,18 @@ MOCK_WLED=true MOCK_WLED_PORT=9090 go run .
 Like a real device, the mock serves `/json/eff` and `/json/pal` and merges each `POST /json/state` into its state (a palette-only update keeps the colors, `{"on":false}` keeps the segments), so `restore` and segments behave as on hardware. `WLED_PALETTES_FILE` points it at a palette list captured from a device (`curl http://<wled>/json/pal > palettes.json`).
 
 The mock provides an HTML dashboard at `http://localhost:9090` showing received effects in real time.
+
+## Dashboard
+
+The dashboard (`:8080/`) lists the effects the catcher played, newest first.
+Each row shows the message that triggered it: severity, system and title.
+A click expands the message text, author, all message tags, the link (PR,
+report, alert) and the WLED endpoint, so you can trace what made the strip
+light up. Every field is escaped, and only `http(s)` URLs become links.
+
+The ▶ button plays that effect again: the event's severity, system and
+message tags are matched against the profile as it is now, **without quiet
+hours**, because a click is a deliberate request. The replay goes into the
+timeline as a new row, marked ↻. `POST /api/events/{id}/replay` is the
+endpoint behind it: 202, 404 for an unknown id or a "light turned off" row,
+409 when the profile matches no effect any more, 429 above 30 per minute.
