@@ -31,7 +31,7 @@ func TestRenderTimeline_CarriesTheLookForThePreview(t *testing.T) {
 		Severity: "info", System: "tabletennis", Effect: "Solid", Color: "blue", On: true,
 		Title: `Pong "A" <b>`, RGB: [][3]int{{0, 0, 255}}, Speed: 128, Intensity: 255,
 	})
-	tracker.RecordEvent(LightEvent{Severity: "error", System: "ci", Effect: "Aurora", Palette: "Lava", On: true})
+	tracker.RecordEvent(LightEvent{Severity: "success", System: "ci", Effect: "Aurora", Palette: "Lava", On: true})
 	tracker.RecordOff("http://wled")
 
 	tl := NewHandler(tracker, "test", "abc1234", "2026-01-01").renderTimeline()

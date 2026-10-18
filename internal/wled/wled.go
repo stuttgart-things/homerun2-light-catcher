@@ -128,7 +128,8 @@ func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, op
 			"fx", effect.Fx, "id", fx, "endpoint", effect.Endpoint)
 	}
 
-	meta := EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color, Tags: effect.Tags}
+	payload := payloadFor(effect, fx, colors, palette,
+		EffectMeta{Severity: severity, System: system, Effect: effect.Fx, Color: effect.Color, Tags: effect.Tags})
 	dev := deviceFor(effect.Endpoint)
 	dev.mu.Lock()
 	if effect.Restore && !dev.active {
@@ -139,7 +140,6 @@ func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, op
 		}
 		dev.baseline = baseline
 	}
-	payload := payloadFor(effect, fx, colors, palette, meta)
 	if err := postState(effect.Endpoint, payload.body()); err != nil {
 		dev.mu.Unlock()
 		slog.Error("failed to send WLED effect", "endpoint", effect.Endpoint, "error", err)
@@ -163,25 +163,7 @@ func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, op
 	)
 
 	if tracker != nil {
-		tracker.RecordEvent(dashboard.LightEvent{
-			Severity:    severity,
-			System:      system,
-			Effect:      effect.Fx,
-			Color:       effect.Color,
-			Endpoint:    effect.Endpoint,
-			On:          true,
-			Tags:        effect.Tags,
-			Title:       src.Title,
-			Message:     src.Message,
-			Author:      src.Author,
-			URL:         src.URL,
-			MessageTags: src.Tags,
-			ReplayOf:    opts.ReplayOf,
-			RGB:         colors,
-			Palette:     devicePaletteName(effect, colors),
-			Speed:       payload.speed,
-			Intensity:   payload.intensity,
-		})
+		tracker.RecordEvent(lightEvent(src, effect, payload, opts))
 	}
 
 	scheduleEnd(effect, display, dev, generation, tracker)
@@ -269,6 +251,29 @@ func resolveLook(effect profile.Effect) (colors [][3]int, palette *int, err erro
 		return nil, nil, errors.New("effect sets neither color nor palette")
 	}
 	return colors, palette, nil
+}
+
+// lightEvent is the dashboard's record of an effect played for src.
+func lightEvent(src Source, effect profile.Effect, payload effectPayload, opts TriggerOptions) dashboard.LightEvent {
+	return dashboard.LightEvent{
+		Severity:    src.Severity,
+		System:      src.System,
+		Effect:      effect.Fx,
+		Color:       effect.Color,
+		Endpoint:    effect.Endpoint,
+		On:          true,
+		Tags:        effect.Tags,
+		Title:       src.Title,
+		Message:     src.Message,
+		Author:      src.Author,
+		URL:         src.URL,
+		MessageTags: src.Tags,
+		ReplayOf:    opts.ReplayOf,
+		RGB:         payload.colors,
+		Palette:     devicePaletteName(effect, payload.colors),
+		Speed:       payload.speed,
+		Intensity:   payload.intensity,
+	}
 }
 
 // devicePaletteName is the name of the device palette an effect plays, ""
