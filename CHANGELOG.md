@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.7.0...v1.8.0) (2026-10-18)
+
+
+### Features
+
+* **dashboard:** preview strip shows each event's effect and colors, click a past event to see it again ([eaf7c93](https://github.com/stuttgart-things/homerun2-light-catcher/commit/eaf7c93e0b4dbf5fbf4227215092c32425faa0a8))
+
 # [1.7.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.6.0...v1.7.0) (2026-10-09)
 
 
