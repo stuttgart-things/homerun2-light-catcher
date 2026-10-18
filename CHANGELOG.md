@@ -1,3 +1,12 @@
+## [1.8.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.8.0...v1.8.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **deps:** update module charm.land/bubbletea/v2 to v2.1.0 ([ec933de](https://github.com/stuttgart-things/homerun2-light-catcher/commit/ec933de8ccc21790789f965874509ad8077f5c40))
+* **deps:** update module github.com/alicebob/miniredis/v2 to v2.40.0 ([849ac63](https://github.com/stuttgart-things/homerun2-light-catcher/commit/849ac63dba989a9431142f66280ec2d412e2a266))
+* **deps:** update module github.com/stuttgart-things/homerun-library/v4 to v4.5.0 ([881e521](https://github.com/stuttgart-things/homerun2-light-catcher/commit/881e5213b67a0ab7e96fed2bbd01aa96e5ab6148))
+
 # [1.8.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.7.0...v1.8.0) (2026-10-18)
 
 
