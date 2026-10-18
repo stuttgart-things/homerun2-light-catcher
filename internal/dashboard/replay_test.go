@@ -33,7 +33,7 @@ func TestTimelineShowsAndEscapesTheMessage(t *testing.T) {
 		`opened &amp; ready`,
 		`<a href="https://github.com/x/pull/1"`,
 		`<dt>tags</dt><dd>github,pull_request</dd>`,
-		`<details class="event" data-id="1">`,
+		`<details class="event" data-id="1" `,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("timeline lacks %q", want)

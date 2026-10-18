@@ -48,6 +48,10 @@ func TestTrigger_RecordsTheSourceMessage(t *testing.T) {
 	if ev.ID != 1 || ev.ReplayOf != 0 {
 		t.Errorf("unexpected id/replayOf: %+v", ev)
 	}
+	// What the strip was sent, for the dashboard's preview.
+	if len(ev.RGB) != 1 || ev.RGB[0] != [3]int{255, 120, 0} || ev.Palette != "" || ev.Speed != 128 || ev.Intensity != 255 {
+		t.Errorf("look not recorded: rgb=%v palette=%q sx=%d ix=%d", ev.RGB, ev.Palette, ev.Speed, ev.Intensity)
+	}
 }
 
 func TestTrigger_ReplayIgnoresQuietHours(t *testing.T) {

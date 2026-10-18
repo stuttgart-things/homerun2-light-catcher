@@ -139,7 +139,8 @@ func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, op
 		}
 		dev.baseline = baseline
 	}
-	if err := postState(effect.Endpoint, payloadFor(effect, fx, colors, palette, meta).body()); err != nil {
+	payload := payloadFor(effect, fx, colors, palette, meta)
+	if err := postState(effect.Endpoint, payload.body()); err != nil {
 		dev.mu.Unlock()
 		slog.Error("failed to send WLED effect", "endpoint", effect.Endpoint, "error", err)
 		return false
@@ -176,6 +177,10 @@ func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, op
 			URL:         src.URL,
 			MessageTags: src.Tags,
 			ReplayOf:    opts.ReplayOf,
+			RGB:         colors,
+			Palette:     devicePaletteName(effect, colors),
+			Speed:       payload.speed,
+			Intensity:   payload.intensity,
 		})
 	}
 
@@ -264,6 +269,18 @@ func resolveLook(effect profile.Effect) (colors [][3]int, palette *int, err erro
 		return nil, nil, errors.New("effect sets neither color nor palette")
 	}
 	return colors, palette, nil
+}
+
+// devicePaletteName is the name of the device palette an effect plays, ""
+// when it plays local colors only -- the dashboard previews it by name.
+func devicePaletteName(effect profile.Effect, colors [][3]int) string {
+	if effect.Palette != "" {
+		return effect.Palette
+	}
+	if colors == nil {
+		return effect.Color
+	}
+	return ""
 }
 
 // EffectMeta carries context about what triggered the WLED effect.

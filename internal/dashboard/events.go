@@ -29,6 +29,13 @@ type LightEvent struct {
 
 	// ReplayOf is the ID of the event this one plays again, 0 for a new one.
 	ReplayOf int `json:"replayOf,omitempty"`
+
+	// What the strip was sent, so the dashboard can preview the effect:
+	// the resolved colors, a device palette by name, speed and intensity.
+	RGB       [][3]int `json:"rgb,omitempty"`
+	Palette   string   `json:"palette,omitempty"`
+	Speed     int      `json:"speed,omitempty"`
+	Intensity int      `json:"intensity,omitempty"`
 }
 
 // EventTracker records recent light events in a ring buffer.

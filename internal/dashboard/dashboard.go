@@ -212,6 +212,20 @@ func (h *Handler) generateHTML() string {
   button.replay:hover { border-color: #a855f7; }
   button.replay.ok { color: #4ade80; border-color: #4ade80; }
   button.replay.fail { color: #ff4444; border-color: #ff4444; }
+  .preview { max-width: 800px; margin: 0 auto 24px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; }
+  .preview-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; flex-wrap: wrap; }
+  .preview-mode { font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+  .preview-mode.live { color: #4ade80; background: rgba(74,222,128,0.12); }
+  .preview-mode.replay { color: #a855f7; background: rgba(168,85,247,0.15); }
+  .preview-label { color: #e2e8f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview-live { background: none; border: 1px solid #334155; color: #4ade80; border-radius: 4px; padding: 1px 8px; cursor: pointer; font-size: 12px; }
+  .preview-live[hidden] { display: none; }
+  .strip { display: flex; gap: 4px; padding: 10px; background: #020617; border-radius: 8px; }
+  .led { flex: 1; aspect-ratio: 1; border-radius: 50%; background: #111827; }
+  .preview-info { margin-top: 8px; color: #64748b; font-size: 12px; }
+  .swatches { display: inline-flex; gap: 3px; vertical-align: middle; margin-left: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); }
+  details.event.selected > summary { background: rgba(168,85,247,0.15); box-shadow: inset 3px 0 0 #a855f7; }
   .empty-state { text-align: center; color: #64748b; padding: 40px; font-size: 14px; }
   .build-footer { background: #0f172a; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
   .build-footer .label { color: #64748b; }
@@ -236,6 +250,15 @@ func (h *Handler) generateHTML() string {
 
 	sb.WriteString(`</div><div class="label">Events</div></div>
   </div>
+  <div class="preview" id="preview">
+    <div class="preview-head">
+      <span class="preview-mode live" id="preview-mode">Live</span>
+      <span class="preview-label" id="preview-label">Light off</span>
+      <button class="preview-live" id="preview-live" hidden title="Back to the live state">● Live</button>
+    </div>
+    <div class="strip" id="strip"></div>
+    <div class="preview-info" id="preview-info">Click an event in the timeline to see its effect again.</div>
+  </div>
   <div class="timeline-section">
     <div class="timeline-title">Light Event Timeline</div>
     <div id="timeline">`)
@@ -259,6 +282,7 @@ function updateDashboard() {
       tl.querySelectorAll('details[open]').forEach(function(d) { openIds[d.dataset.id] = true; });
       tl.innerHTML = html;
       tl.querySelectorAll('details').forEach(function(d) { if (openIds[d.dataset.id]) d.open = true; });
+      preview.refresh();
     })
     .catch(function(err) { console.error('Error:', err); });
 }
@@ -276,7 +300,10 @@ document.getElementById('timeline').addEventListener('click', function(e) {
     .finally(function() { btn.disabled = false; });
 });
 setInterval(updateDashboard, 2000);
-</script>`)
+</script>
+<script>`)
+	sb.WriteString(previewJS)
+	sb.WriteString(`</script>`)
 
 	fmt.Fprintf(&sb, `<div class="build-footer">
   <div style="display:flex;gap:1.5rem">
@@ -305,7 +332,7 @@ func (h *Handler) renderTimeline() string {
 	for i := len(events) - 1; i >= 0; i-- {
 		ev := events[i]
 		if !ev.On {
-			sb.WriteString(`<div class="event-row">`)
+			sb.WriteString(`<div class="event-row" data-off="1">`)
 			sb.WriteString(`<span class="event-dot off"></span>`)
 			fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, esc(ev.Timestamp))
 			sb.WriteString(`<span class="event-off">Light turned off</span>`)
@@ -314,7 +341,7 @@ func (h *Handler) renderTimeline() string {
 		}
 
 		cls := severityDotClass(ev.Severity)
-		fmt.Fprintf(&sb, `<details class="event" data-id="%d"><summary class="event-row">`, ev.ID)
+		fmt.Fprintf(&sb, `<details class="event" data-id="%d"%s><summary class="event-row">`, ev.ID, lookAttrs(ev))
 		fmt.Fprintf(&sb, `<span class="event-dot %s"></span>`, cls)
 		fmt.Fprintf(&sb, `<span class="event-time">%s</span>`, esc(ev.Timestamp))
 		fmt.Fprintf(&sb, `<span class="event-severity %s">%s</span>`, cls, esc(ev.Severity))
@@ -324,7 +351,11 @@ func (h *Handler) renderTimeline() string {
 			replayMark = `<span class="event-replay" title="played again">↻</span>`
 		}
 		fmt.Fprintf(&sb, `<span class="event-title">%s%s</span>`, replayMark, esc(ev.Title))
-		fmt.Fprintf(&sb, `<span class="event-effect">%s / %s</span>`, esc(ev.Effect), esc(ev.Color))
+		look := ev.Color
+		if look == "" {
+			look = ev.Palette
+		}
+		fmt.Fprintf(&sb, `<span class="event-effect">%s / %s%s</span>`, esc(ev.Effect), esc(look), swatches(ev.RGB))
 		if len(ev.Tags) > 0 {
 			sb.WriteString(`<span class="event-tags" title="matched tags">`)
 			for _, tag := range ev.Tags {
@@ -352,6 +383,46 @@ func (h *Handler) renderTimeline() string {
 		fmt.Fprintf(&sb, `<dt>endpoint</dt><dd>%s</dd>`, esc(ev.Endpoint))
 		sb.WriteString(`</dl></div></details>`)
 	}
+	return sb.String()
+}
+
+// lookAttrs renders what the preview strip needs to play an event's effect
+// as data attributes. Every value is escaped: the names come from the profile.
+func lookAttrs(ev LightEvent) string {
+	rgb, _ := json.Marshal(ev.RGB)
+	if ev.RGB == nil {
+		rgb = []byte("[]")
+	}
+	return fmt.Sprintf(` data-fx="%s" data-rgb="%s" data-pal="%s" data-sx="%d" data-ix="%d" data-label="%s"`,
+		html.EscapeString(ev.Effect), html.EscapeString(string(rgb)), html.EscapeString(ev.Palette),
+		ev.Speed, ev.Intensity, html.EscapeString(previewLabel(ev)))
+}
+
+// previewLabel names an event above the preview strip.
+func previewLabel(ev LightEvent) string {
+	parts := []string{ev.Timestamp}
+	for _, p := range []string{ev.Severity, ev.System, ev.Title} {
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, " · ")
+}
+
+// swatches renders a dot per color the effect was sent with, at most eight.
+func swatches(rgb [][3]int) string {
+	if len(rgb) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString(`<span class="swatches">`)
+	for i, c := range rgb {
+		if i == 8 {
+			break
+		}
+		fmt.Fprintf(&sb, `<span class="swatch" style="background:rgb(%d,%d,%d)"></span>`, c[0], c[1], c[2])
+	}
+	sb.WriteString(`</span>`)
 	return sb.String()
 }
 
