@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.8.1...v1.8.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* **lint:** funlen, goconst and gocritic findings from the dashboard preview ([fc1a861](https://github.com/stuttgart-things/homerun2-light-catcher/commit/fc1a86167d28d2f31f4d2c8b79c946b4a9cf7f17))
+
 ## [1.8.1](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.8.0...v1.8.1) (2026-10-18)
 
 
