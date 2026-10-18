@@ -246,3 +246,13 @@ hours**, because a click is a deliberate request. The replay goes into the
 timeline as a new row, marked ↻. `POST /api/events/{id}/replay` is the
 endpoint behind it: 202, 404 for an unknown id or a "light turned off" row,
 409 when the profile matches no effect any more, 429 above 30 per minute.
+
+Above the timeline, a **preview strip** shows the effect in the browser: the
+effect with the colors, speed and intensity that were sent, and the color
+dots next to each row. It follows the newest event live (dark after "light
+turned off"). Click a row in the history and the strip plays that event's
+effect again — in the browser only, the real strip is left alone (that is
+what ▶ is for); after 20 s, or with "● Live", it goes back to live. The
+animation is an approximation of the WLED effect; effects it does not know
+run the colors along the strip, and a device palette (e.g. `Lava`) is shown
+with built-in colors for the common WLED palettes.
