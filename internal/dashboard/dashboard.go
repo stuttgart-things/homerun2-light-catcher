@@ -393,9 +393,14 @@ func lookAttrs(ev LightEvent) string {
 	if ev.RGB == nil {
 		rgb = []byte("[]")
 	}
-	return fmt.Sprintf(` data-fx="%s" data-rgb="%s" data-pal="%s" data-sx="%d" data-ix="%d" data-label="%s"`,
-		html.EscapeString(ev.Effect), html.EscapeString(string(rgb)), html.EscapeString(ev.Palette),
-		ev.Speed, ev.Intensity, html.EscapeString(previewLabel(ev)))
+	var sb strings.Builder
+	for _, a := range [][2]string{
+		{"fx", ev.Effect}, {"rgb", string(rgb)}, {"pal", ev.Palette},
+		{"sx", strconv.Itoa(ev.Speed)}, {"ix", strconv.Itoa(ev.Intensity)}, {"label", previewLabel(ev)},
+	} {
+		sb.WriteString(` data-` + a[0] + `="` + html.EscapeString(a[1]) + `"`)
+	}
+	return sb.String()
 }
 
 // previewLabel names an event above the preview strip.
