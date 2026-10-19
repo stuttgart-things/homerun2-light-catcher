@@ -78,6 +78,7 @@ Redis Stream ──► RedisCatcher ──┬──► LogHandler (structured sl
 - `internal/profile/profile.go` — YAML loading, effect matching, color palettes
 - `internal/wled/wled.go` — WLED HTTP client
 - `internal/mock/mock.go` — WLED mock server with dashboard
+- `internal/dashboard/fragments.go` — `/ui/manifest.json` and `/ui/fragment/events` for homerun2-portal: bare HTML styled by the portal's `hr-*` classes, every URL carries `BASE_PATH`
 - `dagger/main.go` — CI functions (Lint, Build, BuildImage, ScanImage, BuildAndTestBinary)
 - `kcl/` — KCL deployment manifests
 - `tests/profile.yaml` — test effect profile
