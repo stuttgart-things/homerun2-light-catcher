@@ -7,11 +7,16 @@ import (
 )
 
 func TestMount(t *testing.T) {
+	const (
+		get, post = http.MethodGet, http.MethodPost
+		light     = "/light"
+		ok        = "health"
+	)
 	app := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("app " + r.Method + " " + r.URL.Path))
 	})
 	health := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("health"))
+		_, _ = w.Write([]byte(ok))
 	})
 
 	cases := []struct {
@@ -19,23 +24,23 @@ func TestMount(t *testing.T) {
 		code                   int
 		body, location         string
 	}{
-		{"", "GET", "/", 200, "app GET /", ""},
-		{"", "GET", "/timeline", 200, "app GET /timeline", ""},
-		{"", "GET", "/health", 200, "health", ""},
-		{"", "GET", "/healthz", 200, "health", ""},
-		{"/light", "GET", "/light/", 200, "app GET /", ""},
-		{"/light", "GET", "/light/timeline", 200, "app GET /timeline", ""},
-		{"/light", "POST", "/light/api/events/3/replay", 200, "app POST /api/events/3/replay", ""},
-		{"/light", "GET", "/health", 200, "health", ""},
-		{"/light", "GET", "/healthz", 200, "health", ""},
-		{"/light", "GET", "/light/health", 200, "app GET /health", ""},
-		{"/light", "GET", "/light", 307, "", "/light/"},
-		{"/light", "GET", "/", 307, "", "/light/"},
-		{"/light", "GET", "/timeline", 404, "", ""},
+		{"", get, "/", 200, "app GET /", ""},
+		{"", get, "/timeline", 200, "app GET /timeline", ""},
+		{"", get, "/health", 200, ok, ""},
+		{"", get, "/healthz", 200, ok, ""},
+		{light, get, "/light/", 200, "app GET /", ""},
+		{light, get, "/light/timeline", 200, "app GET /timeline", ""},
+		{light, post, "/light/api/events/3/replay", 200, "app POST /api/events/3/replay", ""},
+		{light, get, "/health", 200, ok, ""},
+		{light, get, "/healthz", 200, ok, ""},
+		{light, get, "/light/health", 200, "app GET /health", ""},
+		{light, get, "/light", 307, "", "/light/"},
+		{light, get, "/", 307, "", "/light/"},
+		{light, get, "/timeline", 404, "", ""},
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
-		Mount(tc.basePath, app, health).ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+		Mount(tc.basePath, app, health).ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, http.NoBody))
 		if rec.Code != tc.code {
 			t.Errorf("base %q %s %s: code %d, want %d", tc.basePath, tc.method, tc.path, rec.Code, tc.code)
 			continue
