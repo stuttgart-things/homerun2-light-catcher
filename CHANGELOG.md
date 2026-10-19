@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.8.3...v1.9.0) (2026-10-19)
+
+
+### Features
+
+* serve the dashboard under BASE_PATH ([d61e178](https://github.com/stuttgart-things/homerun2-light-catcher/commit/d61e178b9b9aa7456698b29059295f0e06b151d3)), closes [#89](https://github.com/stuttgart-things/homerun2-light-catcher/issues/89)
+
 ## [1.8.3](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.8.2...v1.8.3) (2026-10-18)
 
 
