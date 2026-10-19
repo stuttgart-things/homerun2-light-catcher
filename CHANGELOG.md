@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.9.0...v1.10.0) (2026-10-19)
+
+
+### Features
+
+* serve the wled-mock under BASE_PATH ([180d351](https://github.com/stuttgart-things/homerun2-light-catcher/commit/180d3514c978d72fc6f3410ea1ab078f32b5b1e9)), closes [#91](https://github.com/stuttgart-things/homerun2-light-catcher/issues/91)
+
 # [1.9.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.8.3...v1.9.0) (2026-10-19)
 
 
