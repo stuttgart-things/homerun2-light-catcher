@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -204,5 +205,92 @@ func TestLoadEffects_FromFile(t *testing.T) {
 	t.Setenv("WLED_EFFECTS_FILE", path+".missing")
 	if s := NewServer("test", "abc1234", "2026-01-01"); len(s.effects) != len(wled16Effects) {
 		t.Fatal("an unreadable file falls back to the built-in list")
+	}
+}
+
+// Behind homerun2-portal the mock runs under BASE_PATH; the WLED API and the
+// health endpoints stay at the root too.
+func TestHandlerBasePath(t *testing.T) {
+	const (
+		get, post = http.MethodGet, http.MethodPost
+		wled      = "/wled"
+		ui        = wled + "/"
+	)
+	s := NewServer("test", "abc1234", "2026-01-01")
+	s.SetBasePath(wled)
+	handler := s.Handler()
+
+	cases := []struct {
+		method, path string
+		code         int
+		location     string
+	}{
+		{get, ui, 200, ""},
+		{get, "/wled/json/state/events", 200, ""},
+		{get, "/wled/api/state", 200, ""},
+		{post, "/wled/api/reset", 200, ""},
+		{get, "/json/state", 200, ""},
+		{get, "/json/eff", 200, ""},
+		{get, "/json/pal", 200, ""},
+		{get, "/health", 200, ""},
+		{get, "/healthz", 200, ""},
+		{get, wled, 307, ui},
+		{get, "/", 307, ui},
+		{get, "/api/state", 404, ""},
+	}
+	for _, tc := range cases {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, http.NoBody))
+		if rec.Code != tc.code {
+			t.Errorf("%s %s: code %d, want %d", tc.method, tc.path, rec.Code, tc.code)
+			continue
+		}
+		if loc := rec.Header().Get("Location"); tc.location != "" && loc != tc.location {
+			t.Errorf("%s %s: Location %q, want %q", tc.method, tc.path, loc, tc.location)
+		}
+	}
+}
+
+// Every URL the dashboard hands out must carry the base path: the portal
+// forwards only /wled/... to the mock.
+func TestDashboardCarriesBasePath(t *testing.T) {
+	s := NewServer("test", "abc1234", "2026-01-01")
+	s.SetBasePath("/wled")
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/wled/", http.NoBody))
+	page := rec.Body.String()
+
+	if !strings.Contains(page, `var basePath = "/wled";`) {
+		t.Error("page lacks the base path for its scripts")
+	}
+	for _, re := range []*regexp.Regexp{
+		regexp.MustCompile(`(?:href|src|action)="(/[^"]*)"`),
+		regexp.MustCompile(`fetch\('(/[^']*)'`),
+		regexp.MustCompile(`EventSource\('(/[^']*)'`),
+	} {
+		for _, m := range re.FindAllStringSubmatch(page, -1) {
+			if !strings.HasPrefix(m[1], "/wled/") {
+				t.Errorf("local URL without the base path: %s", m[0])
+			}
+		}
+	}
+	for _, want := range []string{`href="/wled/api/state"`, `href="/wled/api/reset"`, `fetch(basePath + '/json/state/events')`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("page lacks %s", want)
+		}
+	}
+}
+
+// homerun2-portal shows version and commit from /health.
+func TestHealthCarriesVersion(t *testing.T) {
+	s := NewServer("v1.2.3", "abc1234def", "2026-01-01")
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health", http.NoBody))
+	var body map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body["status"] != "ok" || body["version"] != "v1.2.3" || body["commit"] != "abc1234def" {
+		t.Errorf("unexpected health body: %v", body)
 	}
 }

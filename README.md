@@ -177,6 +177,11 @@ go run ./cmd/wled-mock/
 # Dashboard at http://localhost:8080
 ```
 
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APP_PORT` | `8080` | HTTP port |
+| `BASE_PATH` | *(empty)* | URL prefix of the dashboard, e.g. `/wled` behind homerun2-portal. The dashboard and its API answer under it, `/` redirects there. The WLED API (`/json/...`) answers at the root too, because profiles address the mock like a device; `/health` and `/healthz` stay at the root. Invalid values (and `/json`) fail startup |
+
 ## Container Images
 
 Both images are built with [ko](https://ko.build) on top of `cgr.dev/chainguard/static` and published to GitHub Container Registry on every release.
