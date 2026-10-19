@@ -10,6 +10,7 @@ func TestMount(t *testing.T) {
 	const (
 		get, post = http.MethodGet, http.MethodPost
 		light     = "/light"
+		ui        = light + "/"
 		ok        = "health"
 	)
 	app := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,14 +29,14 @@ func TestMount(t *testing.T) {
 		{"", get, "/timeline", 200, "app GET /timeline", ""},
 		{"", get, "/health", 200, ok, ""},
 		{"", get, "/healthz", 200, ok, ""},
-		{light, get, "/light/", 200, "app GET /", ""},
+		{light, get, ui, 200, "app GET /", ""},
 		{light, get, "/light/timeline", 200, "app GET /timeline", ""},
 		{light, post, "/light/api/events/3/replay", 200, "app POST /api/events/3/replay", ""},
 		{light, get, "/health", 200, ok, ""},
 		{light, get, "/healthz", 200, ok, ""},
 		{light, get, "/light/health", 200, "app GET /health", ""},
-		{light, get, "/light", 307, "", "/light/"},
-		{light, get, "/", 307, "", "/light/"},
+		{light, get, "/light", 307, "", ui},
+		{light, get, "/", 307, "", ui},
 		{light, get, "/timeline", 404, "", ""},
 	}
 	for _, tc := range cases {
