@@ -41,6 +41,7 @@ func main() {
 	profilePath := homerun.GetEnv("PROFILE_PATH", "profile.yaml")
 	healthPort := homerun.GetEnv("HEALTH_PORT", "8080")
 	mockWLED := homerun.GetEnv("MOCK_WLED", "")
+	basePath := mustLoadBasePath()
 
 	// Start embedded WLED mock if requested
 	if mockWLED != "" {
@@ -53,6 +54,7 @@ func main() {
 	// Event tracker for dashboard
 	tracker := dashboard.NewEventTracker()
 	dash := dashboard.NewHandler(tracker, version, commit, date)
+	dash.SetBasePath(basePath)
 	// The timeline's ▶ plays an effect again, whatever the quiet hours (#84).
 	dash.SetReplayer(func(ev dashboard.LightEvent) bool {
 		original := ev.ID
@@ -70,21 +72,7 @@ func main() {
 		}, tracker, wled.TriggerOptions{IgnoreQuietHours: true, ReplayOf: original})
 	})
 
-	// HTTP server with dashboard + health endpoints
-	go func() {
-		mux := http.NewServeMux()
-		healthHandler := handlers.NewHealthHandler(handlers.BuildInfo{
-			Version: version, Commit: commit, Date: date,
-		})
-		dash.RegisterRoutes(mux)
-		mux.HandleFunc("/health", healthHandler)
-		mux.HandleFunc("/healthz", healthHandler)
-
-		slog.Info("http server starting", "port", healthPort)
-		if err := http.ListenAndServe(":"+healthPort, mux); err != nil {
-			slog.Error("http server error", "error", err)
-		}
-	}()
+	go serveHTTP(healthPort, basePath, dash)
 
 	maxMessageAge := mustLoadDuration(config.LoadMaxMessageAge)
 
@@ -142,6 +130,33 @@ func main() {
 	stop()
 
 	slog.Info("catcher exited gracefully")
+}
+
+// serveHTTP serves the dashboard and the health endpoints, the dashboard under
+// basePath (BASE_PATH) and the health endpoints at the root.
+func serveHTTP(port, basePath string, dash *dashboard.Handler) {
+	mux := http.NewServeMux()
+	healthHandler := handlers.NewHealthHandler(handlers.BuildInfo{
+		Version: version, Commit: commit, Date: date,
+	})
+	dash.RegisterRoutes(mux)
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/healthz", healthHandler)
+
+	slog.Info("http server starting", "port", port, "base_path", basePath)
+	if err := http.ListenAndServe(":"+port, handlers.Mount(basePath, mux, healthHandler)); err != nil {
+		slog.Error("http server error", "error", err)
+	}
+}
+
+// mustLoadBasePath returns BASE_PATH, or exits on an invalid value.
+func mustLoadBasePath() string {
+	basePath, err := config.LoadBasePath()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+	return basePath
 }
 
 // mustLoadDuration returns a duration setting, or exits on an invalid value.

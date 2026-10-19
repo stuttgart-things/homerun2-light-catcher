@@ -261,6 +261,7 @@ tests/                     # Test data (profiles, deploy config)
 | `CONSUMER_START_ID` | Where a **newly created** consumer group starts: `$` (only new messages), `0` (whole stream), or a stream ID. Ignored for an existing group | `$` |
 | `PROFILE_PATH` | Path to WLED effect profile YAML | `profile.yaml` |
 | `HEALTH_PORT` | Health endpoint port | `8080` |
+| `BASE_PATH` | URL prefix of the dashboard, e.g. `/light` behind homerun2-portal. The dashboard and its API answer only under it, `/` redirects there, `/health` and `/healthz` stay at the root. Plain path segments only; an invalid value fails startup | (empty) |
 | `LOG_FORMAT` | Log format: `json` or `text` | `json` |
 | `LOG_LEVEL` | Log level: `debug`, `info`, `warn`, `error` | `info` |
 | `MOCK_WLED` | Set to any value to start embedded WLED mock | (empty) |

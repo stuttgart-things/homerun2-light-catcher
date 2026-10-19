@@ -98,6 +98,7 @@ Redis Stream ──► RedisCatcher ──┬──► LogHandler (structured sl
 | `CONSUMER_START_ID` | `$` | Start position of a newly created consumer group (`$`, `0`, or a stream ID) |
 | `PROFILE_PATH` | `profile.yaml` | Path to WLED effect profile YAML |
 | `HEALTH_PORT` | `8080` | Health endpoint port |
+| `BASE_PATH` | *(empty)* | URL prefix of the dashboard, e.g. `/light` behind homerun2-portal; `/` redirects there, `/health` and `/healthz` stay at the root. Invalid values fail startup |
 | `LOG_FORMAT` | `json` | Log format: json or text |
 | `LOG_LEVEL` | `info` | Log level: debug, info, warn, error |
 | `MOCK_WLED` | *(empty)* | Set to any value to start embedded WLED mock |

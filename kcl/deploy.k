@@ -79,6 +79,10 @@ deployment = {
                                 name: "PROFILE_PATH"
                                 value: config.profilePath
                             }
+                            {
+                                name: "BASE_PATH"
+                                value: config.basePath
+                            }
                         ]
                         envFrom: [
                             {
