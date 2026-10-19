@@ -104,6 +104,8 @@ Redis Stream ──► RedisCatcher ──┬──► LogHandler (structured sl
 | `MOCK_WLED` | *(empty)* | Set to any value to start embedded WLED mock |
 | `MOCK_WLED_PORT` | `9090` | Port for embedded WLED mock |
 
+Standalone WLED mock (`cmd/wled-mock`): `APP_PORT` (`8080`) and `BASE_PATH` (e.g. `/wled` behind homerun2-portal; the WLED API `/json/...`, `/health` and `/healthz` also stay at the root). The embedded mock (`MOCK_WLED`) always serves at the root.
+
 ## Testing
 
 ```bash

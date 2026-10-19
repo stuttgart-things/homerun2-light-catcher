@@ -49,6 +49,10 @@ deployment = {
                                 name: "APP_PORT"
                                 value: str(config.appPort)
                             }
+                            {
+                                name: "BASE_PATH"
+                                value: config.basePath
+                            }
                         ]
                         resources: {
                             requests: {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"log/slog"
@@ -69,6 +70,9 @@ type Server struct {
 	version     string
 	commit      string
 	date        string
+	// basePath prefixes the dashboard and every URL it hands out (BASE_PATH,
+	// e.g. "/wled" behind homerun2-portal). Empty serves at the root.
+	basePath string
 }
 
 // NewServer creates a new WLED mock server with default state.
@@ -189,8 +193,37 @@ func validateWLEDState(state WLEDState) error {
 	return nil
 }
 
-// Handler returns the HTTP handler for the mock server.
+// SetBasePath sets the URL prefix the dashboard is served under, as
+// config.ParseBasePath normalised it ("/wled", or "" for the root).
+func (s *Server) SetBasePath(basePath string) {
+	s.basePath = basePath
+}
+
+// Handler returns the HTTP handler for the mock server. With a base path, the
+// whole mock answers under it (homerun2-portal forwards the path unchanged),
+// / redirects there, and two things stay at the root as well: the health
+// endpoints, for the probes and the portal's status check, and the WLED JSON
+// API under /json/, which light-catcher profiles address like a device
+// (http://homerun2-wled-mock/json/state).
 func (s *Server) Handler() http.Handler {
+	app := s.routes()
+	if s.basePath == "" {
+		return app
+	}
+	mux := http.NewServeMux()
+	health := http.HandlerFunc(s.handleHealthz)
+	mux.Handle("/health", health)
+	mux.Handle("/healthz", health)
+	mux.Handle("/json/", app)
+	toUI := http.RedirectHandler(s.basePath+"/", http.StatusTemporaryRedirect)
+	mux.Handle(s.basePath+"/", http.StripPrefix(s.basePath, app))
+	mux.Handle(s.basePath, toUI)
+	mux.Handle("/{$}", toUI)
+	return mux
+}
+
+// routes serves the mock at the root of its own mux.
+func (s *Server) routes() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleDashboard)
 	mux.HandleFunc("/json/state", s.handleState)
@@ -199,6 +232,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/json/state/events", s.handleStateEvents)
 	mux.HandleFunc("/api/state", s.handleAPIState)
 	mux.HandleFunc("/api/reset", s.handleAPIReset)
+	mux.HandleFunc("/health", s.handleHealthz)
 	mux.HandleFunc("/healthz", s.handleHealthz)
 	return mux
 }
@@ -213,7 +247,7 @@ func (s *Server) Run(port string) {
 		IdleTimeout:  15 * time.Second,
 	}
 
-	slog.Info("WLED mock server starting", "port", port)
+	slog.Info("WLED mock server starting", "port", port, "base_path", s.basePath)
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -361,9 +395,16 @@ func (s *Server) handleEffects(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(s.effects)
 }
 
+// handleHealthz answers /health and /healthz. version and commit are what
+// homerun2-portal shows in its status.
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"version": s.version,
+		"commit":  s.commit,
+		"date":    s.date,
+	})
 }
 
 func (s *Server) printStateColors(state WLEDState) {
@@ -394,10 +435,10 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	fxNamesJSON, _ := json.Marshal(s.effectNames)
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, generateDashboardHTML(state, s.effectNames, string(fxNamesJSON), s.version, s.commit, s.date))
+	fmt.Fprint(w, generateDashboardHTML(state, s.effectNames, string(fxNamesJSON), s.basePath, s.version, s.commit, s.date))
 }
 
-func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJSON, version, commit, date string) string {
+func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJSON, basePath, version, commit, date string) string {
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>HOMERUN² WLED Mock</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -541,9 +582,12 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     <div class="subtitle">wled mock dashboard</div>
   </div>
   <div class="actions">
-    <a href="/api/state">API State</a>
-    <a href="/api/reset" onclick="fetch('/api/reset',{method:'POST'});setTimeout(function(){location.reload()},300);return false;">Reset</a>
-  </div>
+`)
+	base := html.EscapeString(basePath)
+	fmt.Fprintf(&sb, `    <a href="%s/api/state">API State</a>
+    <a href="%s/api/reset" onclick="fetch(this.href,{method:'POST'});setTimeout(function(){location.reload()},300);return false;">Reset</a>
+`, base, base)
+	sb.WriteString(`  </div>
 </div>
 <div class="main-content">`)
 
@@ -582,9 +626,12 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
 	sb.WriteString(`<div class="timeline-section"><div class="timeline-title">Event Timeline</div><div id="timeline"></div></div>
 </div>`)
 
+	basePathJS, _ := json.Marshal(basePath)
 	fmt.Fprintf(&sb, `
 <script>
 var fxNames = %s;
+// URL prefix behind homerun2-portal (BASE_PATH), "" at the root.
+var basePath = %s;
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, function(c) {
@@ -593,7 +640,7 @@ function esc(s) {
 }
 
 function updateDashboard() {
-  fetch('/json/state/events')
+  fetch(basePath + '/json/state/events')
     .then(function(r) { return r.json(); })
     .then(function(data) {
       var state = data.state;
@@ -668,7 +715,7 @@ setInterval(updateDashboard, 2000);
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem"><span class="label">a</span> <a href="https://github.com/stuttgart-things" target="_blank" style="color:#818cf8;text-decoration:none">stuttgart-things</a> <span class="label">project</span> <img src="https://raw.githubusercontent.com/stuttgart-things/docs/main/hugo/sthings-logo.png" alt="sthings" style="height:24px;"></div>
 </div>
-</body></html>`, fxNamesJSON, version, shortCommit(commit), date)
+</body></html>`, fxNamesJSON, basePathJS, version, shortCommit(commit), date)
 
 	return sb.String()
 }

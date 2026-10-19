@@ -8,6 +8,7 @@ import schema
 _image = option("config.image")
 _namespace = option("config.namespace")
 _appPort = option("config.appPort")
+_basePath = option("config.basePath")
 _httpRouteEnabled = option("config.httpRouteEnabled")
 _httpRouteParentRefName = option("config.httpRouteParentRefName")
 _httpRouteParentRefNamespace = option("config.httpRouteParentRefNamespace")
@@ -22,6 +23,8 @@ config: schema.WLEDMock = schema.WLEDMock {
         namespace = _namespace
     if _appPort:
         appPort = _appPort
+    if _basePath:
+        basePath = _basePath
     if _httpRouteEnabled:
         httpRouteEnabled = _httpRouteEnabled in [True, "True", "true"]
     if _httpRouteParentRefName:

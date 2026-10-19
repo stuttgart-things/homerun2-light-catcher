@@ -23,6 +23,11 @@ schema WLEDMock:
     # App port
     appPort: int | str = "8080"
 
+    # URL prefix of the dashboard (BASE_PATH), e.g. "/wled" behind
+    # homerun2-portal. Also the HTTPRoute's path prefix. The WLED API
+    # (/json/...) and /health, /healthz stay at the root too. Empty serves at "/".
+    basePath: str = ""
+
     # Service
     serviceType: str = "ClusterIP"
     servicePort: int = 80
