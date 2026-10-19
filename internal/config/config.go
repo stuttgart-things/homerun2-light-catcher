@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -76,6 +77,30 @@ func ParseMaxMessageAge(value string) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid MAX_MESSAGE_AGE %q: must not be negative", value)
 	}
 	return d, nil
+}
+
+// LoadBasePath returns the URL prefix the dashboard is served under
+// (BASE_PATH), e.g. "/light" behind homerun2-portal. Empty serves at the root.
+func LoadBasePath() (string, error) {
+	return ParseBasePath(os.Getenv("BASE_PATH"))
+}
+
+var basePathSegment = regexp.MustCompile(`^[A-Za-z0-9._~-]+$`)
+
+// ParseBasePath normalises a BASE_PATH to "/a/b" form ("" and "/" become "").
+// Only plain path segments are accepted: the value is written into the page's
+// HTML and JS, and "." or ".." would make the prefix ambiguous.
+func ParseBasePath(s string) (string, error) {
+	trimmed := strings.Trim(strings.TrimSpace(s), "/")
+	if trimmed == "" {
+		return "", nil
+	}
+	for _, seg := range strings.Split(trimmed, "/") {
+		if !basePathSegment.MatchString(seg) || seg == "." || seg == ".." {
+			return "", fmt.Errorf("invalid BASE_PATH %q: segment %q", s, seg)
+		}
+	}
+	return "/" + trimmed, nil
 }
 
 // SetupLogging configures slog as the default logger based on LOG_FORMAT and LOG_LEVEL env vars.

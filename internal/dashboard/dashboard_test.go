@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -46,6 +47,45 @@ func TestRenderTimeline_CarriesTheLookForThePreview(t *testing.T) {
 	} {
 		if !strings.Contains(tl, want) {
 			t.Errorf("timeline lacks %s", want)
+		}
+	}
+}
+
+// Behind homerun2-portal the page is served under BASE_PATH, and every URL it
+// hands out must carry it: the portal forwards only /light/... to this service.
+func TestGenerateHTML_CarriesBasePath(t *testing.T) {
+	tracker := NewEventTracker()
+	tracker.Record("info", "github", "DJ Light", "ocean", "http://wled", nil)
+	h := NewHandler(tracker, "test", "abc1234", "2026-01-01")
+	h.SetReplayer(func(LightEvent) bool { return true })
+	h.SetBasePath("/light")
+	page := h.generateHTML()
+
+	if !strings.Contains(page, `var basePath = "/light";`) {
+		t.Error("page lacks the base path for its scripts")
+	}
+	for _, re := range []*regexp.Regexp{
+		regexp.MustCompile(`(?:href|src|action)="(/[^"]*)"`),
+		regexp.MustCompile(`fetch\('(/[^']*)'`),
+	} {
+		for _, m := range re.FindAllStringSubmatch(page, -1) {
+			if !strings.HasPrefix(m[1], "/light/") {
+				t.Errorf("local URL without the base path: %s", m[0])
+			}
+		}
+	}
+	for _, want := range []string{`href="/light/api/events"`, `href="/light/health"`, `fetch(basePath + '/timeline')`, `fetch(basePath + '/api/events/'`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("page lacks %s", want)
+		}
+	}
+}
+
+func TestGenerateHTML_RootWithoutBasePath(t *testing.T) {
+	page := NewHandler(NewEventTracker(), "test", "abc1234", "2026-01-01").generateHTML()
+	for _, want := range []string{`var basePath = "";`, `href="/api/events"`, `href="/health"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("page lacks %s", want)
 		}
 	}
 }

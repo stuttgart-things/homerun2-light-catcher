@@ -41,6 +41,11 @@ func main() {
 	profilePath := homerun.GetEnv("PROFILE_PATH", "profile.yaml")
 	healthPort := homerun.GetEnv("HEALTH_PORT", "8080")
 	mockWLED := homerun.GetEnv("MOCK_WLED", "")
+	basePath, err := config.LoadBasePath()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
 
 	// Start embedded WLED mock if requested
 	if mockWLED != "" {
@@ -53,6 +58,7 @@ func main() {
 	// Event tracker for dashboard
 	tracker := dashboard.NewEventTracker()
 	dash := dashboard.NewHandler(tracker, version, commit, date)
+	dash.SetBasePath(basePath)
 	// The timeline's ▶ plays an effect again, whatever the quiet hours (#84).
 	dash.SetReplayer(func(ev dashboard.LightEvent) bool {
 		original := ev.ID
@@ -80,8 +86,8 @@ func main() {
 		mux.HandleFunc("/health", healthHandler)
 		mux.HandleFunc("/healthz", healthHandler)
 
-		slog.Info("http server starting", "port", healthPort)
-		if err := http.ListenAndServe(":"+healthPort, mux); err != nil {
+		slog.Info("http server starting", "port", healthPort, "base_path", basePath)
+		if err := http.ListenAndServe(":"+healthPort, handlers.Mount(basePath, mux, healthHandler)); err != nil {
 			slog.Error("http server error", "error", err)
 		}
 	}()

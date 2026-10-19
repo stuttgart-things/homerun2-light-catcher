@@ -26,6 +26,10 @@ type Handler struct {
 	commit  string
 	date    string
 
+	// basePath prefixes every URL the page hands out (BASE_PATH, e.g.
+	// "/light" behind homerun2-portal). Empty serves at the root.
+	basePath string
+
 	replay  Replayer
 	mu      sync.Mutex
 	replays []time.Time
@@ -47,6 +51,13 @@ func NewHandler(tracker *EventTracker, version, commit, date string) *Handler {
 // /api/events/{id}/replay (#84).
 func (h *Handler) SetReplayer(r Replayer) {
 	h.replay = r
+}
+
+// SetBasePath sets the URL prefix the dashboard is served under, as
+// config.ParseBasePath normalised it ("/light", or "" for the root). The
+// routes stay at the root of the mux; handlers.Mount strips the prefix.
+func (h *Handler) SetBasePath(basePath string) {
+	h.basePath = basePath
 }
 
 // RegisterRoutes registers dashboard routes on the given mux.
@@ -238,9 +249,12 @@ func (h *Handler) generateHTML() string {
     <div class="subtitle">light catcher dashboard</div>
   </div>
   <div class="actions">
-    <a href="/api/events">API Events</a>
-    <a href="/health">Health</a>
-  </div>
+`)
+	base := html.EscapeString(h.basePath)
+	fmt.Fprintf(&sb, `    <a href="%s/api/events">API Events</a>
+    <a href="%s/health">Health</a>
+`, base, base)
+	sb.WriteString(`  </div>
 </div>
 <div class="main-content">
   <div class="stats">
@@ -265,13 +279,17 @@ func (h *Handler) generateHTML() string {
 
 	sb.WriteString(h.renderTimeline())
 
-	sb.WriteString(`</div></div></div>
+	basePathJS, _ := json.Marshal(h.basePath)
+	fmt.Fprintf(&sb, `</div></div></div>
 <script>
-// The server renders the timeline (one place that escapes); this polls it and
+// URL prefix behind homerun2-portal (BASE_PATH), "" at the root.
+var basePath = %s;
+`, basePathJS)
+	sb.WriteString(`// The server renders the timeline (one place that escapes); this polls it and
 // keeps open details open across refreshes (#84).
 var openIds = {};
 function updateDashboard() {
-  fetch('/timeline')
+  fetch(basePath + '/timeline')
     .then(function(r) {
       var count = r.headers.get('X-Event-Count');
       if (count !== null) document.getElementById('event-count').textContent = count;
@@ -295,7 +313,7 @@ document.getElementById('timeline').addEventListener('click', function(e) {
   e.preventDefault();
   e.stopPropagation();
   btn.disabled = true;
-  fetch('/api/events/' + btn.dataset.id + '/replay', { method: 'POST' })
+  fetch(basePath + '/api/events/' + btn.dataset.id + '/replay', { method: 'POST' })
     .then(function(r) { btn.classList.add(r.ok ? 'ok' : 'fail'); return updateDashboard(); })
     .finally(function() { btn.disabled = false; });
 });

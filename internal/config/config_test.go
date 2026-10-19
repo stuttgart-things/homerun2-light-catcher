@@ -58,3 +58,32 @@ func TestParseMaxMessageAge(t *testing.T) {
 		}
 	}
 }
+
+func TestParseBasePath(t *testing.T) {
+	cases := []struct {
+		in      string
+		want    string
+		wantErr bool
+	}{
+		{"", "", false},
+		{"/", "", false},
+		{"/light", "/light", false},
+		{"light", "/light", false},
+		{"/light/", "/light", false},
+		{" /homerun/light ", "/homerun/light", false},
+		{"/a//b", "", true},
+		{"/../light", "", true},
+		{"/light'</script>", "", true},
+		{"/light?x=1", "", true},
+	}
+	for _, tc := range cases {
+		got, err := ParseBasePath(tc.in)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("ParseBasePath(%q) error = %v, wantErr %v", tc.in, err, tc.wantErr)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseBasePath(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
