@@ -13,6 +13,7 @@ _redisStream = option("config.redisStream")
 _consumerGroup = option("config.consumerGroup")
 _redisPassword = option("config.redisPassword")
 _healthPort = option("config.healthPort")
+_basePath = option("config.basePath")
 _httpRouteEnabled = option("config.httpRouteEnabled")
 _httpRouteParentRefName = option("config.httpRouteParentRefName")
 _httpRouteParentRefNamespace = option("config.httpRouteParentRefNamespace")
@@ -39,6 +40,8 @@ config: schema.LightCatcher = schema.LightCatcher {
         redisPassword = _redisPassword
     if _healthPort:
         healthPort = _healthPort
+    if _basePath:
+        basePath = _basePath
     if _httpRouteEnabled:
         httpRouteEnabled = _httpRouteEnabled in [True, "True", "true"]
     if _httpRouteParentRefName:

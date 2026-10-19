@@ -26,6 +26,10 @@ type Handler struct {
 	commit  string
 	date    string
 
+	// basePath is the prefix the dashboard is served under (BASE_PATH), put in
+	// front of every URL the page hands to the browser.
+	basePath string
+
 	replay  Replayer
 	mu      sync.Mutex
 	replays []time.Time
@@ -41,6 +45,18 @@ func NewHandler(tracker *EventTracker, version, commit, date string) *Handler {
 		date:    date,
 		now:     time.Now,
 	}
+}
+
+// SetBasePath sets the URL prefix the dashboard is served under (BASE_PATH),
+// e.g. "/light" behind homerun2-portal. It must be normalised already
+// (config.ParseBasePath): it is written into the page as is.
+func (h *Handler) SetBasePath(p string) {
+	h.basePath = p
+}
+
+// BasePath is the URL prefix set with SetBasePath, empty at the root.
+func (h *Handler) BasePath() string {
+	return h.basePath
 }
 
 // SetReplayer enables the ▶ button of the timeline and POST
@@ -238,8 +254,8 @@ func (h *Handler) generateHTML() string {
     <div class="subtitle">light catcher dashboard</div>
   </div>
   <div class="actions">
-    <a href="/api/events">API Events</a>
-    <a href="/health">Health</a>
+    <a href="` + h.basePath + `/api/events">API Events</a>
+    <a href="` + h.basePath + `/health">Health</a>
   </div>
 </div>
 <div class="main-content">
@@ -267,11 +283,14 @@ func (h *Handler) generateHTML() string {
 
 	sb.WriteString(`</div></div></div>
 <script>
+// BASE_PATH: the prefix the dashboard is served under behind a reverse proxy
+// (e.g. /light), empty at the root. Every request below carries it.
+var BASE_PATH = '` + h.basePath + `';
 // The server renders the timeline (one place that escapes); this polls it and
 // keeps open details open across refreshes (#84).
 var openIds = {};
 function updateDashboard() {
-  fetch('/timeline')
+  fetch(BASE_PATH + '/timeline')
     .then(function(r) {
       var count = r.headers.get('X-Event-Count');
       if (count !== null) document.getElementById('event-count').textContent = count;
@@ -295,7 +314,7 @@ document.getElementById('timeline').addEventListener('click', function(e) {
   e.preventDefault();
   e.stopPropagation();
   btn.disabled = true;
-  fetch('/api/events/' + btn.dataset.id + '/replay', { method: 'POST' })
+  fetch(BASE_PATH + '/api/events/' + btn.dataset.id + '/replay', { method: 'POST' })
     .then(function(r) { btn.classList.add(r.ok ? 'ok' : 'fail'); return updateDashboard(); })
     .finally(function() { btn.disabled = false; });
 });

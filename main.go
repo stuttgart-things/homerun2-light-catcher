@@ -53,6 +53,7 @@ func main() {
 	// Event tracker for dashboard
 	tracker := dashboard.NewEventTracker()
 	dash := dashboard.NewHandler(tracker, version, commit, date)
+	dash.SetBasePath(mustLoadBasePath())
 	// The timeline's ▶ plays an effect again, whatever the quiet hours (#84).
 	dash.SetReplayer(func(ev dashboard.LightEvent) bool {
 		original := ev.ID
@@ -80,8 +81,8 @@ func main() {
 		mux.HandleFunc("/health", healthHandler)
 		mux.HandleFunc("/healthz", healthHandler)
 
-		slog.Info("http server starting", "port", healthPort)
-		if err := http.ListenAndServe(":"+healthPort, mux); err != nil {
+		slog.Info("http server starting", "port", healthPort, "base_path", dash.BasePath())
+		if err := http.ListenAndServe(":"+healthPort, handlers.Mount(dash.BasePath(), mux, healthHandler)); err != nil {
 			slog.Error("http server error", "error", err)
 		}
 	}()
@@ -142,6 +143,17 @@ func main() {
 	stop()
 
 	slog.Info("catcher exited gracefully")
+}
+
+// mustLoadBasePath reads BASE_PATH; an invalid value ends the process, like
+// any other invalid configuration.
+func mustLoadBasePath() string {
+	basePath, err := config.LoadBasePath()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+	return basePath
 }
 
 // mustLoadDuration returns a duration setting, or exits on an invalid value.

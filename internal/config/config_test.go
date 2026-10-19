@@ -58,3 +58,19 @@ func TestParseMaxMessageAge(t *testing.T) {
 		}
 	}
 }
+
+func TestParseBasePath(t *testing.T) {
+	for raw, want := range map[string]string{
+		"": "", "/": "", " ": "", "/light": "/light", "light/": "/light", "/homerun2/light": "/homerun2/light",
+	} {
+		got, err := ParseBasePath(raw)
+		if err != nil || got != want {
+			t.Errorf("ParseBasePath(%q) = %q, %v; want %q", raw, got, err, want)
+		}
+	}
+	for _, raw := range []string{"/li ght", "/light/../x", "/<x>", "/a//b", "/light?x=1", "/it's"} {
+		if _, err := ParseBasePath(raw); err == nil {
+			t.Errorf("ParseBasePath(%q): want an error", raw)
+		}
+	}
+}

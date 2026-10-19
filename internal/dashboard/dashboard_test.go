@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -47,5 +48,39 @@ func TestRenderTimeline_CarriesTheLookForThePreview(t *testing.T) {
 		if !strings.Contains(tl, want) {
 			t.Errorf("timeline lacks %s", want)
 		}
+	}
+}
+
+// Same-origin URLs in the page: href/src attributes and string literals passed
+// to fetch() or assigned, that start with a single "/".
+var rootURL = regexp.MustCompile(`(?:(?:href|src)="|(?:fetch\(|=\s*)')(/[A-Za-z][^"'\s]*)`)
+
+func TestGenerateHTML_PutsTheBasePathOnEveryURL(t *testing.T) {
+	h := NewHandler(NewEventTracker(), "test", "abc1234", "2026-01-01")
+	h.SetBasePath("/light")
+	page := h.generateHTML()
+
+	for _, want := range []string{
+		`var BASE_PATH = '/light';`,
+		`fetch(BASE_PATH + '/timeline')`,
+		`fetch(BASE_PATH + '/api/events/' + btn.dataset.id + '/replay'`,
+		`href="/light/api/events"`,
+		`href="/light/health"`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("page lacks %s", want)
+		}
+	}
+	for _, m := range rootURL.FindAllStringSubmatch(page, -1) {
+		if m[1] != "/light" && !strings.HasPrefix(m[1], "/light/") { // the BASE_PATH constant itself is fine
+			t.Errorf("page links outside /light/: %s", m[1])
+		}
+	}
+}
+
+func TestGenerateHTML_WithoutBasePathIsUnchanged(t *testing.T) {
+	page := NewHandler(NewEventTracker(), "test", "abc1234", "2026-01-01").generateHTML()
+	if !strings.Contains(page, `var BASE_PATH = '';`) || !strings.Contains(page, `href="/api/events"`) {
+		t.Error("root URLs changed without a base path")
 	}
 }

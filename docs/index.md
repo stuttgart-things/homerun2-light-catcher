@@ -19,6 +19,7 @@ Redis Streams consumer microservice that triggers WLED light effects based on co
 | `CONSUMER_START_ID` | `$` | Start position of a newly created consumer group: `$` (only new messages), `0` (whole stream), or a stream ID. An existing group keeps its position |
 | `PROFILE_PATH` | `profile.yaml` | Path to WLED effect profile YAML |
 | `HEALTH_PORT` | `8080` | Health endpoint port |
+| `BASE_PATH` | *(empty)* | URL prefix of the dashboard behind a reverse proxy, e.g. `/light` behind homerun2-portal; `/health` stays at the root |
 | `LOG_FORMAT` | `json` | Log format: `json` or `text` |
 | `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
 | `MOCK_WLED` | *(empty)* | Set to any value to start embedded WLED mock |
