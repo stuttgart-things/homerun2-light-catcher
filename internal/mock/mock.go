@@ -435,29 +435,70 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	fxNamesJSON, _ := json.Marshal(s.effectNames)
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, generateDashboardHTML(state, s.effectNames, string(fxNamesJSON), s.basePath, s.version, s.commit, s.date))
+	page := generateDashboardHTML(state, s.effectNames, string(fxNamesJSON), s.basePath, s.version, s.commit, s.date)
+	if r.Header.Get("X-Forwarded-Prefix") != "" {
+		// Through homerun2-portal: its design tokens win over the page's copy.
+		page = strings.Replace(page, "</head>", portalTokensLink+"</head>", 1)
+	}
+	fmt.Fprint(w, page)
 }
+
+// portalTokensLink loads homerun2-portal's design tokens from the portal's
+// own origin.
+const portalTokensLink = `<link rel="stylesheet" href="/static/homerun2-tokens.css">`
 
 func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJSON, basePath, version, commit, date string) string {
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>HOMERUN² WLED Mock</title>
+<script>
+  // In homerun2-portal's iframe the portal shows the brand and the service
+  // name: hr-embedded switches to the compact header. Set before the first
+  // paint, so the big banner never flashes.
+  if (window.self !== window.top) document.documentElement.classList.add('hr-embedded');
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
+  /* The homerun2 design tokens: a copy of homerun2-portal's
+     static/homerun2-tokens.css for running without the portal. Behind it
+     handleDashboard also links the portal's file (after this block), and its
+     :root wins over this zero-specificity copy. */
+  :where(:root) {
+    --hr-bg: #0b1120;
+    --hr-surface: #111827;
+    --hr-card: #1e293b;
+    --hr-border: #334155;
+    --hr-text: #e2e8f0;
+    --hr-muted: #94a3b8;
+    --hr-accent: #6366f1;
+    --hr-accent-2: #a855f7;
+    --hr-accent-3: #f97316;
+    --hr-ok: #22c55e;
+    --hr-info: #38bdf8;
+    --hr-warning: #eab308;
+    --hr-error: #ef4444;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    background-color: #1e293b;
-    color: #e0e0e0;
+    background-color: var(--hr-bg);
+    color: var(--hr-text);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
-  .header-bar { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); color: #f8fafc; padding: 1.8rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #f97316; }
+  .header-bar { background: linear-gradient(135deg, var(--hr-accent) 0%, var(--hr-accent-2) 100%); color: #f8fafc; padding: 1.8rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid var(--hr-accent-3); }
   .header-bar h1 { margin: 0; font-family: 'Press Start 2P', cursive; font-size: 2.2rem; color: #ffffff; letter-spacing: 0.08em; text-shadow: 3px 3px 0px rgba(0,0,0,0.3); }
   .header-bar .subtitle { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; color: #fbbf24; margin-top: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase; }
   .header-bar .actions { display: flex; gap: 0.75rem; align-items: center; }
-  .header-bar .actions a { color: #e2e8f0; font-size: 0.85rem; text-decoration: none; }
+  .header-bar .actions a { color: var(--hr-text); font-size: 0.85rem; text-decoration: none; }
   .header-bar .actions a:hover { color: #f8fafc; }
+  /* The compact header inside homerun2-portal (README there, "Embedded
+     header"): one line on the portal's surface, no brand, the subtitle on the
+     left and the links on the right. */
+  .hr-embedded .header-bar { font-family: var(--hr-font, system-ui, sans-serif); background: var(--hr-surface); border-bottom: 1px solid var(--hr-border); min-height: 44px; padding: 6px 16px; align-items: center; }
+  .hr-embedded .header-bar h1 { display: none; }
+  .hr-embedded .header-bar .subtitle { font-family: inherit; font-size: 13px; color: var(--hr-muted); margin: 0; letter-spacing: normal; text-transform: none; }
+  .hr-embedded .header-bar .actions a { font-size: 12px; color: var(--hr-accent); text-decoration: none; }
   .main-content { flex: 1; }
   .status {
     margin-top: 20px;
@@ -468,8 +509,8 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     transition: color 0.4s ease, text-shadow 0.4s ease;
   }
   .status.on {
-    color: #00e676;
-    text-shadow: 0 0 16px #00e676, 0 0 32px #00e67644;
+    color: var(--hr-ok);
+    text-shadow: 0 0 16px var(--hr-ok), 0 0 32px color-mix(in srgb, var(--hr-ok) 27%, transparent);
   }
   .status.off { color: #64748b; text-shadow: none; }
   .container {
@@ -480,12 +521,12 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     padding: 20px;
   }
   .segment {
-    background-color: #1e293b;
+    background-color: var(--hr-card);
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     padding: 16px;
     width: 260px;
-    border: 1px solid #334155;
+    border: 1px solid var(--hr-border);
     transition: filter 0.4s ease, opacity 0.4s ease;
   }
   .segment.dimmed { filter: grayscale(1); opacity: 0.5; }
@@ -532,9 +573,9 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     letter-spacing: 1px;
   }
   #timeline {
-    background-color: #1e293b;
+    background-color: var(--hr-card);
     border-radius: 8px;
-    border: 1px solid #334155;
+    border: 1px solid var(--hr-border);
     padding: 12px;
     max-height: 260px;
     overflow-y: auto;
@@ -542,14 +583,14 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     font-size: 13px;
   }
   #timeline::-webkit-scrollbar { width: 6px; }
-  #timeline::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
-  #timeline::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  #timeline::-webkit-scrollbar-track { background: var(--hr-card); border-radius: 3px; }
+  #timeline::-webkit-scrollbar-thumb { background: var(--hr-border); border-radius: 3px; }
   .event-row {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 4px 0;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--hr-border);
   }
   .event-row:last-child { border-bottom: none; }
   .event-dot {
@@ -558,20 +599,20 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .event-dot.on { background-color: #00e676; box-shadow: 0 0 6px #00e676; }
+  .event-dot.on { background-color: var(--hr-ok); box-shadow: 0 0 6px var(--hr-ok); }
   .event-dot.off { background-color: #64748b; }
   .event-time { color: #64748b; font-family: 'Courier New', monospace; }
   .event-action { color: #818cf8; width: 56px; }
-  .event-summary { color: #e2e8f0; }
+  .event-summary { color: var(--hr-text); }
   .event-badge { font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; min-width: 60px; text-align: center; }
-  .sev-error { background: rgba(255,68,68,0.2); color: #ff4444; }
-  .sev-warning { background: rgba(249,115,22,0.2); color: #f97316; }
-  .sev-success { background: rgba(74,222,128,0.2); color: #4ade80; }
-  .sev-info { background: rgba(96,165,250,0.2); color: #60a5fa; }
+  .sev-error { background: color-mix(in srgb, var(--hr-error) 20%, transparent); color: var(--hr-error); }
+  .sev-warning { background: color-mix(in srgb, var(--hr-warning) 20%, transparent); color: var(--hr-warning); }
+  .sev-success { background: color-mix(in srgb, var(--hr-ok) 20%, transparent); color: var(--hr-ok); }
+  .sev-info { background: color-mix(in srgb, var(--hr-info) 20%, transparent); color: var(--hr-info); }
   .event-meta { color: #818cf8; min-width: 80px; }
-  .event-meta-effect { color: #e2e8f0; }
+  .event-meta-effect { color: var(--hr-text); }
   .event-tag { font-size: 11px; color: #fbbf24; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); border-radius: 4px; padding: 1px 6px; }
-  .build-footer { background: #1e293b; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
+  .build-footer { background: var(--hr-surface); color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid var(--hr-border); }
   .build-footer .label { color: #64748b; }
   .build-footer .value { color: #818cf8; }
 </style>
@@ -579,7 +620,7 @@ func generateDashboardHTML(state WLEDState, effectNames map[int]string, fxNamesJ
 <div class="header-bar">
   <div>
     <h1>HOMERUN²</h1>
-    <div class="subtitle">wled mock dashboard</div>
+    <div class="subtitle">LED strip simulator</div>
   </div>
   <div class="actions">
 `)

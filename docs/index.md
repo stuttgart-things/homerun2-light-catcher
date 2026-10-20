@@ -98,6 +98,8 @@ Both services serve HTMX dashboards with the HOMERUN² design.
 | **Light Catcher** (`/`) | Event timeline with severity badges, system, effect, color |
 | **WLED Mock** (`/`) | WLED state, segment visualization, event timeline with trigger context (severity, system, effect from light-catcher) |
 
+Both use the homerun2 design tokens (`--hr-*`) and, through homerun2-portal, link the portal's `/static/homerun2-tokens.css`; inside the portal's frame they show a compact one-line header instead of the banner.
+
 ## Endpoints
 
 ### Light Catcher

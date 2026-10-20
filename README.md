@@ -110,6 +110,8 @@ Both the light-catcher and the WLED mock serve dashboards with the HOMERUN² des
 
 The light-catcher dashboard shows events as they are triggered. The mock dashboard shows what the WLED device receives, including severity/system/effect metadata from the light-catcher.
 
+Both build their colours on the homerun2 design tokens (`--hr-*`, see homerun2-portal's README, "Shared theme"): each page keeps a copy of them and, when it is served through homerun2-portal (`X-Forwarded-Prefix`), also links the portal's `/static/homerun2-tokens.css`. Inside the portal's frame the HOMERUN² banner gives way to one compact line: the subtitle on the left, the links on the right.
+
 ## Running Modes
 
 ### Production — with real WLED device
