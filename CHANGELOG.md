@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.11.0...v1.12.0) (2026-10-20)
+
+
+### Features
+
+* homerun2 design tokens and the compact header in the portal ([036d696](https://github.com/stuttgart-things/homerun2-light-catcher/commit/036d6965e872c7b230fb82b868324e98806f8c92))
+
 # [1.11.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.10.0...v1.11.0) (2026-10-20)
 
 
