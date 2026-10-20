@@ -1,3 +1,15 @@
+# [1.14.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.13.0...v1.14.0) (2026-10-20)
+
+
+### Bug Fixes
+
+* US spelling in the fragment comments for the misspell linter ([452bf9b](https://github.com/stuttgart-things/homerun2-light-catcher/commit/452bf9b1577849ba87c7dfe479b5930c79076095)), closes [#98](https://github.com/stuttgart-things/homerun2-light-catcher/issues/98)
+
+
+### Features
+
+* wled-mock offers the strip state as a homerun2-portal fragment ([d4c3d50](https://github.com/stuttgart-things/homerun2-light-catcher/commit/d4c3d50d6e02f4bf65979bb4b6ca67c5627d0458)), closes [#98](https://github.com/stuttgart-things/homerun2-light-catcher/issues/98)
+
 # [1.13.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.12.0...v1.13.0) (2026-10-20)
 
 
