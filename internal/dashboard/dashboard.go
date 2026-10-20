@@ -142,8 +142,17 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, h.generateHTML())
+	page := h.generateHTML()
+	if r.Header.Get("X-Forwarded-Prefix") != "" {
+		// Through homerun2-portal: its design tokens win over the page's copy.
+		page = strings.Replace(page, "</head>", portalTokensLink+"</head>", 1)
+	}
+	fmt.Fprint(w, page)
 }
+
+// portalTokensLink loads homerun2-portal's design tokens from the portal's
+// own origin.
+const portalTokensLink = `<link rel="stylesheet" href="/static/homerun2-tokens.css">`
 
 func severityDotClass(severity string) string {
 	switch strings.ToUpper(severity) {
@@ -161,86 +170,118 @@ func severityDotClass(severity string) string {
 func (h *Handler) generateHTML() string {
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>HOMERUN² Light Catcher</title>
+<script>
+  // In homerun2-portal's iframe the portal shows the brand and the service
+  // name: hr-embedded switches to the compact header. Set before the first
+  // paint, so the big banner never flashes.
+  if (window.self !== window.top) document.documentElement.classList.add('hr-embedded');
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
+  /* The homerun2 design tokens: a copy of homerun2-portal's
+     static/homerun2-tokens.css for running without the portal. Behind it
+     handleDashboard also links the portal's file (after this block), and its
+     :root wins over this zero-specificity copy. */
+  :where(:root) {
+    --hr-bg: #0b1120;
+    --hr-surface: #111827;
+    --hr-card: #1e293b;
+    --hr-border: #334155;
+    --hr-text: #e2e8f0;
+    --hr-muted: #94a3b8;
+    --hr-accent: #6366f1;
+    --hr-accent-2: #a855f7;
+    --hr-accent-3: #f97316;
+    --hr-ok: #22c55e;
+    --hr-info: #38bdf8;
+    --hr-warning: #eab308;
+    --hr-error: #ef4444;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    background-color: #1e293b;
-    color: #e0e0e0;
+    background-color: var(--hr-bg);
+    color: var(--hr-text);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
-  .header-bar { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); color: #f8fafc; padding: 1.8rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #f97316; }
+  .header-bar { background: linear-gradient(135deg, var(--hr-accent) 0%, var(--hr-accent-2) 100%); color: #f8fafc; padding: 1.8rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid var(--hr-accent-3); }
   .header-bar h1 { margin: 0; font-family: 'Press Start 2P', cursive; font-size: 2.2rem; color: #ffffff; letter-spacing: 0.08em; text-shadow: 3px 3px 0px rgba(0,0,0,0.3); }
   .header-bar .subtitle { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; color: #fbbf24; margin-top: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase; }
   .header-bar .actions { display: flex; gap: 0.75rem; align-items: center; }
-  .header-bar .actions a { color: #e2e8f0; font-size: 0.85rem; text-decoration: none; }
+  .header-bar .actions a { color: var(--hr-text); font-size: 0.85rem; text-decoration: none; }
   .header-bar .actions a:hover { color: #f8fafc; }
+  /* The compact header inside homerun2-portal (README there, "Embedded
+     header"): one line on the portal's surface, no brand, the subtitle on the
+     left and the links on the right. */
+  .hr-embedded .header-bar { font-family: var(--hr-font, system-ui, sans-serif); background: var(--hr-surface); border-bottom: 1px solid var(--hr-border); min-height: 44px; padding: 6px 16px; align-items: center; }
+  .hr-embedded .header-bar h1 { display: none; }
+  .hr-embedded .header-bar .subtitle { font-family: inherit; font-size: 13px; color: var(--hr-muted); margin: 0; letter-spacing: normal; text-transform: none; }
+  .hr-embedded .header-bar .actions a { font-size: 12px; color: var(--hr-accent); text-decoration: none; }
   .main-content { flex: 1; padding: 20px; }
   .stats { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; }
-  .stat-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 16px 24px; text-align: center; min-width: 120px; }
+  .stat-card { background: var(--hr-surface); border: 1px solid var(--hr-border); border-radius: 10px; padding: 16px 24px; text-align: center; min-width: 120px; }
   .stat-card .number { font-size: 28px; font-weight: bold; color: #818cf8; }
   .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; margin-top: 4px; }
   .timeline-section { max-width: 800px; margin: 0 auto; }
   .timeline-title { font-size: 16px; font-weight: bold; color: #818cf8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-  #timeline { background-color: #0f172a; border-radius: 8px; border: 1px solid #334155; padding: 12px; max-height: 500px; overflow-y: auto; font-size: 13px; }
+  #timeline { background-color: var(--hr-surface); border-radius: 8px; border: 1px solid var(--hr-border); padding: 12px; max-height: 500px; overflow-y: auto; font-size: 13px; }
   #timeline::-webkit-scrollbar { width: 6px; }
-  #timeline::-webkit-scrollbar-track { background: #0f172a; border-radius: 3px; }
-  #timeline::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-  .event-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-bottom: 1px solid #1e293b; }
+  #timeline::-webkit-scrollbar-track { background: var(--hr-surface); border-radius: 3px; }
+  #timeline::-webkit-scrollbar-thumb { background: var(--hr-border); border-radius: 3px; }
+  .event-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-bottom: 1px solid var(--hr-card); }
   .event-row:last-child { border-bottom: none; }
   .event-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .event-dot.error { background-color: #ff4444; box-shadow: 0 0 6px #ff4444; }
-  .event-dot.warning { background-color: #f97316; box-shadow: 0 0 6px #f97316; }
-  .event-dot.success { background-color: #4ade80; box-shadow: 0 0 6px #4ade80; }
-  .event-dot.info { background-color: #60a5fa; box-shadow: 0 0 6px #60a5fa; }
+  .event-dot.error { background-color: var(--hr-error); box-shadow: 0 0 6px var(--hr-error); }
+  .event-dot.warning { background-color: var(--hr-warning); box-shadow: 0 0 6px var(--hr-warning); }
+  .event-dot.success { background-color: var(--hr-ok); box-shadow: 0 0 6px var(--hr-ok); }
+  .event-dot.info { background-color: var(--hr-info); box-shadow: 0 0 6px var(--hr-info); }
   .event-dot.off { background-color: #64748b; }
   .event-time { color: #64748b; font-family: 'Courier New', monospace; min-width: 65px; }
   .event-severity { font-weight: bold; min-width: 70px; text-transform: uppercase; font-size: 12px; }
-  .event-severity.error { color: #ff4444; }
-  .event-severity.warning { color: #f97316; }
-  .event-severity.success { color: #4ade80; }
-  .event-severity.info { color: #60a5fa; }
+  .event-severity.error { color: var(--hr-error); }
+  .event-severity.warning { color: var(--hr-warning); }
+  .event-severity.success { color: var(--hr-ok); }
+  .event-severity.info { color: var(--hr-info); }
   .event-system { color: #818cf8; min-width: 100px; }
-  .event-effect { color: #e2e8f0; }
+  .event-effect { color: var(--hr-text); }
   .event-tags { display: flex; flex-wrap: wrap; gap: 4px; }
   .event-tag { font-family: 'Courier New', monospace; font-size: 11px; color: #fbbf24; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); border-radius: 4px; padding: 1px 6px; }
   .event-off { color: #64748b; font-style: italic; }
-  details.event { border-bottom: 1px solid #1e293b; }
+  details.event { border-bottom: 1px solid var(--hr-card); }
   details.event > summary { list-style: none; cursor: pointer; border-bottom: none; }
   details.event > summary::-webkit-details-marker { display: none; }
-  details.event > summary:hover { background: #1e293b; }
-  details.event[open] > summary { background: #1e293b; }
+  details.event > summary:hover { background: var(--hr-card); }
+  details.event[open] > summary { background: var(--hr-card); }
   .event-title { color: #f8fafc; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .event-replay { color: #a855f7; margin-right: 4px; }
+  .event-replay { color: var(--hr-accent-2); margin-right: 4px; }
   .event-detail { padding: 8px 12px 12px 30px; color: #cbd5e1; font-size: 12px; }
-  .detail-message { white-space: pre-wrap; margin-bottom: 8px; color: #e2e8f0; }
+  .detail-message { white-space: pre-wrap; margin-bottom: 8px; color: var(--hr-text); }
   .event-detail dl { display: grid; grid-template-columns: 70px 1fr; gap: 2px 10px; }
   .event-detail dt { color: #64748b; }
   .event-detail dd { font-family: 'Courier New', monospace; word-break: break-all; }
   .event-detail a { color: #818cf8; }
-  button.replay { background: none; border: 1px solid #334155; color: #a855f7; border-radius: 4px; padding: 1px 8px; cursor: pointer; font-size: 12px; }
-  button.replay:hover { border-color: #a855f7; }
-  button.replay.ok { color: #4ade80; border-color: #4ade80; }
-  button.replay.fail { color: #ff4444; border-color: #ff4444; }
-  .preview { max-width: 800px; margin: 0 auto 24px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; }
+  button.replay { background: none; border: 1px solid var(--hr-border); color: var(--hr-accent-2); border-radius: 4px; padding: 1px 8px; cursor: pointer; font-size: 12px; }
+  button.replay:hover { border-color: var(--hr-accent-2); }
+  button.replay.ok { color: var(--hr-ok); border-color: var(--hr-ok); }
+  button.replay.fail { color: var(--hr-error); border-color: var(--hr-error); }
+  .preview { max-width: 800px; margin: 0 auto 24px; background: var(--hr-surface); border: 1px solid var(--hr-border); border-radius: 10px; padding: 14px 16px; }
   .preview-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; flex-wrap: wrap; }
   .preview-mode { font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
-  .preview-mode.live { color: #4ade80; background: rgba(74,222,128,0.12); }
-  .preview-mode.replay { color: #a855f7; background: rgba(168,85,247,0.15); }
-  .preview-label { color: #e2e8f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .preview-live { background: none; border: 1px solid #334155; color: #4ade80; border-radius: 4px; padding: 1px 8px; cursor: pointer; font-size: 12px; }
+  .preview-mode.live { color: var(--hr-ok); background: rgba(74,222,128,0.12); }
+  .preview-mode.replay { color: var(--hr-accent-2); background: rgba(168,85,247,0.15); }
+  .preview-label { color: var(--hr-text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview-live { background: none; border: 1px solid var(--hr-border); color: var(--hr-ok); border-radius: 4px; padding: 1px 8px; cursor: pointer; font-size: 12px; }
   .preview-live[hidden] { display: none; }
   .strip { display: flex; gap: 4px; padding: 10px; background: #020617; border-radius: 8px; }
   .led { flex: 1; aspect-ratio: 1; border-radius: 50%; background: #111827; }
   .preview-info { margin-top: 8px; color: #64748b; font-size: 12px; }
   .swatches { display: inline-flex; gap: 3px; vertical-align: middle; margin-left: 6px; }
   .swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); }
-  details.event.selected > summary { background: rgba(168,85,247,0.15); box-shadow: inset 3px 0 0 #a855f7; }
+  details.event.selected > summary { background: rgba(168,85,247,0.15); box-shadow: inset 3px 0 0 var(--hr-accent-2); }
   .empty-state { text-align: center; color: #64748b; padding: 40px; font-size: 14px; }
-  .build-footer { background: #0f172a; color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; }
+  .build-footer { background: var(--hr-surface); color: #475569; padding: 0.6rem 1.5rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid var(--hr-border); }
   .build-footer .label { color: #64748b; }
   .build-footer .value { color: #818cf8; }
 </style>
@@ -248,7 +289,7 @@ func (h *Handler) generateHTML() string {
 <div class="header-bar">
   <div>
     <h1>HOMERUN²</h1>
-    <div class="subtitle">light catcher dashboard</div>
+    <div class="subtitle">Light effects dashboard</div>
   </div>
   <div class="actions">
 `)
