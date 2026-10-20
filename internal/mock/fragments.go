@@ -64,7 +64,7 @@ func (s *Server) handleStateFragment(w http.ResponseWriter, r *http.Request) {
 
 // renderStateFragment renders the strip as an hr-list: on/off and brightness
 // with the time of the last change, then one item per segment with its first
-// colour, effect and palette. Names are escaped: the effect list can come
+// color, effect and palette. Names are escaped: the effect list can come
 // from a file (WLED_EFFECTS_FILE), and the portal shows the fragment to every
 // viewer.
 func (s *Server) renderStateFragment() string {
@@ -120,7 +120,7 @@ func (s *Server) paletteName(pal int) string {
 	return s.palettes[pal]
 }
 
-// swatchStyle colours the dot with the segment's first colour.
+// swatchStyle colors the dot with the segment's first color.
 func swatchStyle(col [][3]int) string {
 	if len(col) == 0 {
 		return ""
