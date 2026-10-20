@@ -66,6 +66,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/events", h.handleEvents)
 	mux.HandleFunc("/timeline", h.handleTimeline)
 	mux.HandleFunc("POST /api/events/{id}/replay", h.handleReplay)
+	mux.HandleFunc("/ui/manifest.json", h.handleManifest)
+	mux.HandleFunc("/ui/fragment/events", h.handleEventsFragment)
 }
 
 // handleTimeline serves the rendered timeline, which the page polls.
