@@ -112,6 +112,15 @@ The light-catcher dashboard shows events as they are triggered. The mock dashboa
 
 Both build their colours on the homerun2 design tokens (`--hr-*`, see homerun2-portal's README, "Shared theme"): each page keeps a copy of them and, when it is served through homerun2-portal (`X-Forwarded-Prefix`), also links the portal's `/static/homerun2-tokens.css`. Inside the portal's frame the HOMERUN² banner gives way to one compact line: the subtitle on the left, the links on the right.
 
+Both also put a fragment on homerun2-portal's overview (see its README, "Fragments"): `<BASE_PATH>/ui/manifest.json` names it, and the portal loads it into the service's card.
+
+| Service | Fragment | Shows |
+|---------|----------|-------|
+| **Light Catcher** | `/ui/fragment/events` ("Latest light effects", every 5 s) | The newest light events: colour, severity, system, title, effect |
+| **WLED Mock** | `/ui/fragment/state` ("Strip state", every 3 s) | On/off and brightness with the time of the last change, then per segment a colour swatch, the effect and the palette (if set); "Light is off" when off; a link to the simulator |
+
+Fragments are bare HTML styled only by the portal's `hr-*` classes, every URL carries `BASE_PATH` (e.g. `/wled/ui/fragment/state`), and every name is escaped.
+
 ## Running Modes
 
 ### Production — with real WLED device

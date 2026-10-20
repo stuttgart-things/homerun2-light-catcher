@@ -100,6 +100,8 @@ Both services serve HTMX dashboards with the HOMERUN² design.
 
 Both use the homerun2 design tokens (`--hr-*`) and, through homerun2-portal, link the portal's `/static/homerun2-tokens.css`; inside the portal's frame they show a compact one-line header instead of the banner.
 
+On the portal's overview each offers one fragment, announced by `<BASE_PATH>/ui/manifest.json`: the light-catcher its latest light effects (`/ui/fragment/events`), the WLED mock its strip state (`/ui/fragment/state`: on/off, brightness, the last change, per segment colour swatch, effect and palette). Bare HTML in the portal's `hr-*` classes, every URL under `BASE_PATH`, everything escaped.
+
 ## Endpoints
 
 ### Light Catcher
@@ -121,6 +123,8 @@ Both use the homerun2 design tokens (`--hr-*`) and, through homerun2-portal, lin
 | GET | `/json/state/events` | State + event timeline |
 | GET | `/api/state` | API state with request count |
 | POST | `/api/reset` | Reset mock state |
+| GET | `/ui/manifest.json` | homerun2-portal manifest (title "WLED Mock", the `state` fragment) |
+| GET | `/ui/fragment/state` | Strip state fragment for the portal's overview |
 | GET | `/healthz` | Health check |
 
 ## Container Images

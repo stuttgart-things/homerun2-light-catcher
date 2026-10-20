@@ -232,6 +232,8 @@ func (s *Server) routes() *http.ServeMux {
 	mux.HandleFunc("/json/state/events", s.handleStateEvents)
 	mux.HandleFunc("/api/state", s.handleAPIState)
 	mux.HandleFunc("/api/reset", s.handleAPIReset)
+	mux.HandleFunc("GET /ui/manifest.json", s.handleManifest)
+	mux.HandleFunc("GET /ui/fragment/state", s.handleStateFragment)
 	mux.HandleFunc("/health", s.handleHealthz)
 	mux.HandleFunc("/healthz", s.handleHealthz)
 	return mux
