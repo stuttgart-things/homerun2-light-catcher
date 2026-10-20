@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.10.0...v1.11.0) (2026-10-20)
+
+
+### Features
+
+* offer the latest light effects as a homerun2-portal fragment ([fb844f2](https://github.com/stuttgart-things/homerun2-light-catcher/commit/fb844f29c710cd4d1aba9cfc04c02aeb18d9d908))
+
 # [1.10.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.9.0...v1.10.0) (2026-10-19)
 
 
