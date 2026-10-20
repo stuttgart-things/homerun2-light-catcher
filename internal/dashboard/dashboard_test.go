@@ -13,7 +13,8 @@ func TestGenerateHTML_ShowsMatchedTags(t *testing.T) {
 
 	page := NewHandler(tracker, "test", "abc1234", "2026-01-01").generateHTML()
 	// Only inspect the server-rendered timeline, not the JS that re-renders it.
-	html, _, _ := strings.Cut(page, "<script>")
+	_, body, _ := strings.Cut(page, "<body>")
+	html, _, _ := strings.Cut(body, "<script>")
 
 	if !strings.Contains(html, `<span class="event-tag">transition=point</span>`) {
 		t.Error("expected matched tag in timeline")
