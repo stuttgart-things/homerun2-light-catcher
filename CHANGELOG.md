@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.12.0...v1.13.0) (2026-10-20)
+
+
+### Features
+
+* wled-mock uses the homerun2 design tokens and a compact header inside the portal ([dc41dd6](https://github.com/stuttgart-things/homerun2-light-catcher/commit/dc41dd6af6fb4d780386af9a0f1889b0c108566e)), closes [#96](https://github.com/stuttgart-things/homerun2-light-catcher/issues/96)
+
 # [1.12.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.11.0...v1.12.0) (2026-10-20)
 
 
