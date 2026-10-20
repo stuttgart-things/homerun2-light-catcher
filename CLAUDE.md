@@ -79,6 +79,7 @@ Redis Stream ──► RedisCatcher ──┬──► LogHandler (structured sl
 - `internal/wled/wled.go` — WLED HTTP client
 - `internal/mock/mock.go` — WLED mock server with dashboard; the same homerun2 theme as `internal/dashboard` (`--hr-*` tokens, the portal's tokens linked behind `X-Forwarded-Prefix`, compact header under `html.hr-embedded`)
 - `internal/dashboard/dashboard.go` — the dashboard page; colours on the homerun2 `--hr-*` tokens (a `:where(:root)` copy, the portal's `/static/homerun2-tokens.css` linked when `X-Forwarded-Prefix` is set), compact header under `html.hr-embedded` in the portal's iframe
+- `internal/mock/fragments.go` — the mock's `/ui/manifest.json` and `/ui/fragment/state` (strip state: on/off, brightness, last change, per segment swatch/effect/palette) for homerun2-portal, under `BASE_PATH` like the rest of the UI; the WLED API stays at the root
 - `internal/dashboard/fragments.go` — `/ui/manifest.json` and `/ui/fragment/events` for homerun2-portal: bare HTML styled by the portal's `hr-*` classes, every URL carries `BASE_PATH`
 - `dagger/main.go` — CI functions (Lint, Build, BuildImage, ScanImage, BuildAndTestBinary)
 - `kcl/` — KCL deployment manifests
