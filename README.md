@@ -56,6 +56,13 @@ effects:
 
 An effect can also set a WLED palette (`color: Lava` or `palette:`), `segments`, `speed`, `intensity`, `brightness` and `transition`, and with `restore: true` the device's previous scene comes back instead of the light going off -- see [docs/profiles.md](docs/profiles.md#fields).
 
+To light several WLED devices with the same effect, list them in `endpoints` (alone or next to `endpoint`; duplicates are dropped). Every device gets the effect in parallel, with its own name lookup, turn-off and restore; one slow or failing device does not stop the others -- see [docs/profiles.md](docs/profiles.md#several-devices).
+
+```yaml
+    endpoint: http://wled-strip.example.lab
+    endpoints: [http://homerun2-wled-mock]
+```
+
 When an effect has a `duration`, the light is turned off after that many seconds — unless a newer effect has been sent to the same endpoint in the meantime. The newer effect's own `duration` then decides when the light goes off.
 
 ### Matching on tags
