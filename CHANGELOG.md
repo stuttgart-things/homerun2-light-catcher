@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.14.0...v1.15.0) (2026-11-17)
+
+
+### Features
+
+* **profile:** endpoints list to send one effect to several WLED devices ([#104](https://github.com/stuttgart-things/homerun2-light-catcher/issues/104)) ([2da7032](https://github.com/stuttgart-things/homerun2-light-catcher/commit/2da7032c6d54abf8cb2f27fce905883eedabc3ea))
+
 # [1.14.0](https://github.com/stuttgart-things/homerun2-light-catcher/compare/v1.13.0...v1.14.0) (2026-10-20)
 
 
