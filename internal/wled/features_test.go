@@ -115,17 +115,21 @@ func TestResolveLook(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
+	const wled = "http://wled"
 	for name, e := range map[string]profile.Effect{
-		"speed":      {Speed: intp(256)},
-		"brightness": {Brightness: intp(-1)},
-		"transition": {Transition: floatp(-0.1)},
-		"segment":    {Segments: []int{32}},
+		"speed":      {Speed: intp(256), Endpoint: wled},
+		"brightness": {Brightness: intp(-1), Endpoint: wled},
+		"transition": {Transition: floatp(-0.1), Endpoint: wled},
+		"segment":    {Segments: []int{32}, Endpoint: wled},
 	} {
 		if e.Validate() == nil {
 			t.Errorf("%s out of range must be refused", name)
 		}
 	}
-	if err := (profile.Effect{Speed: intp(0), Segments: []int{0, 31}}).Validate(); err != nil {
+	if err := (profile.Effect{}).Validate(); err == nil {
+		t.Error("an effect without endpoint and endpoints must be refused")
+	}
+	if err := (profile.Effect{Speed: intp(0), Segments: []int{0, 31}, Endpoint: wled}).Validate(); err != nil {
 		t.Errorf("0 and 31 are valid: %v", err)
 	}
 }

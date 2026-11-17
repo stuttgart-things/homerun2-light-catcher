@@ -115,8 +115,12 @@ type Effect struct {
 	Palette string `yaml:"palette"`
 	// Segments are the WLED segment IDs the effect is sent to. Empty sends it
 	// to the main segment, as before.
-	Segments []int  `yaml:"segments"`
+	Segments []int `yaml:"segments"`
+	// Endpoint is the WLED device the effect is sent to.
 	Endpoint string `yaml:"endpoint"`
+	// Endpoints are further WLED devices that get the same effect, e.g. a
+	// strip and the mock on a TV. Together with Endpoint they form Targets.
+	Endpoints []string `yaml:"endpoints"`
 
 	// Speed (sx) and Intensity (ix), 0-255. Unset: 128 and 255.
 	Speed     *int `yaml:"speed"`
@@ -132,8 +136,25 @@ type Effect struct {
 	Restore bool `yaml:"restore"`
 }
 
-// Validate checks the numeric fields against WLED's ranges.
+// Targets returns the WLED devices the effect is sent to: Endpoint first,
+// then Endpoints, trimmed, without empty entries and duplicates.
+func (e Effect) Targets() []string {
+	targets := make([]string, 0, 1+len(e.Endpoints))
+	for _, t := range append([]string{e.Endpoint}, e.Endpoints...) {
+		t = strings.TrimSpace(t)
+		if t != "" && !slices.Contains(targets, t) {
+			targets = append(targets, t)
+		}
+	}
+	return targets
+}
+
+// Validate checks that the effect has a device to go to and the numeric
+// fields against WLED's ranges.
 func (e Effect) Validate() error {
+	if len(e.Targets()) == 0 {
+		return fmt.Errorf("no WLED device: set endpoint or endpoints")
+	}
 	for name, v := range map[string]*int{"speed": e.Speed, "intensity": e.Intensity, "brightness": e.Brightness} {
 		if v != nil && (*v < 0 || *v > 255) {
 			return fmt.Errorf("%s %d out of range 0-255", name, *v)

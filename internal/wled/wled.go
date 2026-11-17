@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -82,8 +83,9 @@ func SendToWLED(profilePath, severity, system, tags string, tracker *dashboard.E
 	Trigger(profilePath, Source{Severity: severity, System: system, Tags: tags}, tracker, TriggerOptions{})
 }
 
-// Trigger loads the profile, matches an effect for src, and sends it to the
-// WLED device. It returns false when no effect was played.
+// Trigger loads the profile, matches an effect for src, and sends it to every
+// WLED device of the effect (endpoint and endpoints) in parallel. It returns
+// false when no device got the effect.
 func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, opts TriggerOptions) bool {
 	severity, system, tags := src.Severity, src.System, src.Tags
 	config, err := profile.LoadConfiguration(profilePath)
@@ -112,6 +114,30 @@ func Trigger(profilePath string, src Source, tracker *dashboard.EventTracker, op
 		return false
 	}
 
+	// Every device gets the effect on its own: one that is slow or down
+	// must not hold back or block the others. Each resolves names against
+	// its own effect and palette lists, and keeps its own turn-off/restore.
+	targets := effect.Targets()
+	played := make([]bool, len(targets))
+	var wg sync.WaitGroup
+	for i, endpoint := range targets {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			one := effect
+			one.Endpoint = endpoint
+			one.Endpoints = nil
+			played[i] = triggerOne(one, display, src, tracker, opts)
+		}()
+	}
+	wg.Wait()
+	return slices.Contains(played, true)
+}
+
+// triggerOne sends the effect to the single device at effect.Endpoint and
+// schedules its end. It returns false when the device did not get it.
+func triggerOne(effect profile.Effect, display string, src Source, tracker *dashboard.EventTracker, opts TriggerOptions) bool {
+	severity, system := src.Severity, src.System
 	colors, palette, err := resolveLook(effect)
 	if err != nil {
 		slog.Error("failed to resolve color", "color", effect.Color, "palette", effect.Palette, "endpoint", effect.Endpoint, "error", err)

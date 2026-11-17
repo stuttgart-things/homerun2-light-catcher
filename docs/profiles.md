@@ -24,6 +24,8 @@ effects:
     transition: <seconds>                 # optional
     restore: <true|false>                 # optional
     endpoint: <WLED HTTP endpoint>
+    endpoints:                            # optional, more devices
+      - <WLED HTTP endpoint>
 ```
 
 ## Fields
@@ -45,6 +47,7 @@ effects:
 | `transition` | *Optional.* Crossfade into the effect in seconds (WLED `tt`, 0.1 s steps, max 6553.5). |
 | `restore` | *Optional.* When `true`, the device's state is read before the effect and written back when `duration` ends, instead of switching the light off -- for devices that show an ambient scene. Effects that follow each other before the restore restore the scene from before the first one. If the state cannot be read, the light is switched off as without `restore`. |
 | `endpoint` | WLED device HTTP endpoint (e.g., `http://192.168.1.100:80`). |
+| `endpoints` | *Optional.* More WLED devices that get the same effect (e.g., `[http://wled-strip, http://homerun2-wled-mock]`). Together with `endpoint` they form the effect's devices, without duplicates. At least one of `endpoint` and `endpoints` is required. See [Several devices](#several-devices). |
 
 ## Example Profile
 
@@ -127,6 +130,42 @@ effects:
 ```
 
 Swapping the two entries makes `success` match every system, including `tabletennis`, so `tabletennis-win` would never be selected.
+
+### Several devices
+
+`endpoints` sends one rule's effect to several WLED devices -- for example a
+real strip and the WLED mock on a TV:
+
+```yaml
+effects:
+  alert:
+    systems: ["*"]
+    severity: [error]
+    fx: Blink
+    duration: 10
+    color: red
+    endpoint: http://wled-strip.example.lab
+    endpoints:
+      - http://homerun2-wled-mock
+```
+
+`endpoint` and `endpoints` may be combined; the effect goes to every
+distinct URL of both. A profile with only `endpoint` works as before.
+Each device is handled on its own and **in parallel**:
+
+- effect and palette names are resolved against each device's own
+  `/json/eff` and `/json/pal`; a device that cannot answer falls back to the
+  built-in effect table without affecting the others,
+- a device that is slow, down or answers with an error is logged
+  (`failed to send WLED effect`, with its `endpoint`) and does not hold back
+  or stop the others,
+- turn-off and `restore` run per device, including the rule below: a newer
+  effect sent to one device keeps that device on, the others still go off,
+- the log line `WLED effect triggered` and the dashboard event are written
+  once per device, each with its `endpoint`.
+
+The message counts as played when at least one device got the effect. The
+next message is handled once every device has answered or timed out.
 
 ### Overlapping effects on one endpoint
 
